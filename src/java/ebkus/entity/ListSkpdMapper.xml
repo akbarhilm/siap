@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.ListSkpdMapper">
+    
+   <select id="getBanyakSkpd" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   count(*) as banyak
+        FROM ( SELECT   idSkpd,
+        kodeSkpd,
+        namaSkpd,
+        levelSkpd,
+        kodeWilayah
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT   I_ID as idSkpd,
+        C_SKPD as kodeSkpd,
+        N_SKPD as namaSkpd,
+        C_SKPD_LEVEL as levelSkpd,
+        TRSKPD.C_WIL as kodeWilayah
+        FROM   TRSKPD
+       where c_aktif = 1
+        <if test="namaskpd != null and namaskpd != '' ">
+            AND upper(TRSKPD.N_SKPD) like '%'||upper(#{namaskpd})||'%'
+        </if>
+       
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            AND upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>
+        )a)
+        )
+    </select>
+    
+    <select id="getSkpd" parameterType="java.util.Map"  resultType="ebkus.model.Skpd">
+        SELECT   idSkpd,
+        kodeSkpd,
+        namaSkpd,
+        levelSkpd,
+        kodeWilayah
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT   I_ID as idSkpd,
+        C_SKPD as kodeSkpd,
+        N_SKPD as namaSkpd,
+        C_SKPD_LEVEL as levelSkpd,
+        TRSKPD.C_WIL as kodeWilayah
+        FROM   TRSKPD
+        where c_aktif = 1
+        <if test="namaskpd != null and namaskpd != '' ">
+            AND upper(TRSKPD.N_SKPD) like '%'||upper(#{namaskpd})||'%'
+        </if>
+       
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            AND upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>
+        )a)
+    </select>
+    
+     <select id="getSkpdById" parameterType="java.lang.Integer"  resultType="ebkus.model.Skpd">
+        SELECT   idSkpd,
+        kodeSkpd,
+        namaSkpd,
+        levelSkpd,
+        kodeWilayah
+       
+        FROM   ( 
+        SELECT   I_ID as idSkpd,
+        C_SKPD as kodeSkpd,
+        N_SKPD as namaSkpd,
+        C_SKPD_LEVEL as levelSkpd,
+        TRSKPD.C_WIL as kodeWilayah
+        FROM   TRSKPD
+        where i_id=#{id}
+        )
+    </select>
+    
+</mapper>

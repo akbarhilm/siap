@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.TalanganMapper">
+
+    <select id="getListIndex" parameterType="java.util.Map" resultType="ebkus.model.PaguTalangan">
+        SELECT rn as no, id, tahun, tanggalMohon, namaSekolah, idsekolah, bulanTagihan, uraian,
+        danaTalangan, triwulan, iMcb, namaMcb, kodeRekening, kodeSumbdana
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT   p.i_id as id, CASE
+        WHEN p.d_pgun_ubah IS NOT NULL
+        THEN p.d_pgun_ubah
+        ELSE p.d_pgun_rekam
+        END AS tanggalMohon,
+        c_angg_tahun AS tahun, p.i_idsekolah AS idsekolah,
+        s.n_sekolah_pendek AS namaSekolah, BULAN(c_bulan_tagihan) AS bulanTagihan,
+        e_mohon AS uraian, v_danatalangan AS danaTalangan, c_angg_triwulan as triwulan,
+        m.i_mcb AS iMcb, m.n_mcb AS namaMcb, (CASE c_angg_sumbdana
+        WHEN  '1' THEN i_rek_bankbos
+        ELSE i_rek_bankbop
+        END
+        ) AS kodeRekening, (CASE c_angg_sumbdana
+        WHEN  '1' THEN 'BOS'
+        ELSE 'BOP'
+        END
+        ) AS kodeSumbdana
+        FROM tmbkuspagutalangan p JOIN trsekolah s ON p.i_idsekolah = s.i_id
+        JOIN trplnmcb m ON p.i_idmcb = m.i_id
+        WHERE p.i_idskpd = #{idskpd} AND c_angg_tahun = #{tahun}
+        and c_angg_sumbdana != #{tipe}
+        and c_angg_triwulan = #{triwulan}
+        ORDER BY p.c_bulan_tagihan
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListIndex" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT  p.i_id, CASE
+        WHEN p.d_pgun_ubah IS NOT NULL
+        THEN p.d_pgun_ubah
+        ELSE p.d_pgun_rekam
+        END AS tanggalmohon,
+        c_angg_tahun AS tahun, p.i_idsekolah AS idsekolah,
+        s.n_sekolah_pendek AS namasekolah, c_bulan_tagihan AS bulantagihan,
+        e_mohon AS uraian, v_danatalangan AS danatalangan,
+        m.i_mcb AS iMcb, m.n_mcb AS namaMcb
+        FROM tmbkuspagutalangan p JOIN trsekolah s ON p.i_idsekolah = s.i_id
+        JOIN trplnmcb m ON p.i_idmcb = m.i_id
+        WHERE p.i_idskpd = #{idskpd} AND c_angg_tahun = #{tahun}
+        and c_angg_triwulan = #{triwulan}
+        and c_angg_sumbdana != #{tipe}
+        ORDER BY p.c_bulan_tagihan
+        )
+    </select>
+    <select id="getListIndexWS" parameterType="java.util.Map" resultType="ebkus.model.WSTalangan">
+        SELECT id, tahun, tanggalTerima, npsn, namaSekolah, iMcb, namaMcb, idsekolah, bulanTagihan, tanggalBayar,
+        kodeBayar,  nilaiBayar
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        select w.i_id as id, w.c_angg_tahun as tahun, w.d_bkus_terima as tanggalTerima, w.i_npsn as npsn,
+        n_sekolah_pendek as namaSekolah, i_mcb as iMcb, n_mcb as namaMcb, s.i_id as idSekolah,
+        c_bulan_tagihan as bulanTagihan, d_bank_bayar as tanggalBayar, c_bank_bayar as kodeBayar,
+        v_bank_bayar as nilaiBayar
+        from tmbkuswstalangan w join trsekolah s on w.i_npsn = s.i_npsn
+        where c_angg_tahun = #{tahun} and c_angg_triwulan = #{triwulan}
+        and c_angg_sumbdana = #{kodesumbdana}
+        <if test="kodeotoritas == '0' ">
+            and  s.i_idskpd = #{idskpd}
+        </if>
+        <if test="kodeotoritas != '0' ">
+            and  s.i_npsn = #{npsn}
+        </if>
+        ORDER BY d_bkus_terima
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListIndexWS" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select w.c_angg_tahun as tahun, w.d_bkus_terima as tanggalTerima, w.i_npsn as npsn,
+        n_sekolah_pendek as namaSekolah, i_mcb as iMcb, n_mcb as namaMcb, s.i_id as idSekolah,
+        BULAN(c_bulan_tagihan) as bulanTagihan, d_bank_bayar as tanggalBayar, c_bank_bayar as kodeBayar,
+        v_bank_bayar as nilaiBayar
+        from tmbkuswstalangan w join trsekolah s on w.i_npsn = s.i_npsn
+        where c_angg_tahun = #{tahun} and c_angg_triwulan = #{triwulan}
+        and c_angg_sumbdana != #{kodesumbdana}
+        <if test="kodeotoritas == '0' ">
+            and  s.i_idskpd = #{idskpd}
+        </if>
+        <if test="kodeotoritas != '0' ">
+            and  s.i_npsn = #{npsn}
+        </if>
+        ORDER BY d_bkus_terima
+        )
+    </select>
+
+    <select id="getNilaiIndex" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT   nvl(sum(v_danatalangan),0) AS danaTalangan
+        FROM tmbkuspagutalangan p JOIN trsekolah s ON p.i_idsekolah = s.i_id
+        WHERE p.i_idskpd = #{idskpd} AND c_angg_tahun = #{tahun}
+        and c_angg_triwulan = #{triwulan}
+        and c_angg_sumbdana != #{tipe}
+
+    </select>
+    <select id="getNilaiIndexWS" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT   nvl(sum(v_bank_bayar),0) AS nilai
+        FROM tmbkuswstalangan
+        WHERE  c_angg_tahun = #{tahun}
+        and c_angg_triwulan = #{triwulan}
+        and c_angg_sumbdana != #{kodesumbdana}
+        <if test="kodeotoritas == '0' ">
+            and  i_idskpd = #{idskpd}
+        </if>
+        <if test="kodeotoritas != '0' ">
+            and  i_npsn = #{npsn}
+        </if>
+    </select>
+    <update id="updatePaguTalanganById" parameterType="ebkus.model.PaguTalangan"   >
+        UPDATE TMBKUSPAGUTALANGAN
+        SET
+        C_ANGG_TAHUN = #{tahun},
+        I_IDSEKOLAH = #{idsekolah},
+        I_IDSKPD = #{idskpd},
+        C_BULAN_TAGIHAN = #{bulanTagihan},
+        C_ANGG_SUMBDANA = #{kodeSumbdana},
+        I_PPTK_NRK = #{nrk},
+        N_PPTK = #{namaPptk},
+        I_PPTK_NIP = #{nipPptk},
+        E_MOHON = #{uraian},
+        V_DANATALANGAN = #{danaTalangan},
+        I_IDMCB = #{idmcb},
+        C_ANGG_TRIWULAN = #{triwulan},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{id}
+    </update>
+    <select id="getMcb" parameterType="java.util.Map" resultType="ebkus.model.MCB">
+        SELECT   i_id as idMcb, i_mcb as noMcb, n_mcb as namaMcb
+        FROM   TRPLNMCB
+        WHERE i_idsekolah = #{idsekolah}
+
+    </select>
+    <select id="getMaxStatus" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT   NVL(MAX (c_bku_status),0) as maxStatusBku
+        FROM   TMBKUSBOP
+        WHERE   c_angg_tahun = #{tahun}
+        AND i_idsekolah = #{idsekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND c_trx = 'JJ'
+        AND c_bku_tutup &lt; 2
+    </select>
+
+    <select id="getEditPaguTalangan" parameterType="java.util.Map" resultType="ebkus.model.PaguTalangan">
+        SELECT   i_id as id, i_idskpd as idskpd, i_idmcb as idmcb,
+        i_idsekolah as idsekolah, c_angg_tahun as tahun, c_angg_triwulan as triwulan,
+        c_bulan_tagihan as bulanTagihan, i_pptk_nrk as nrk, n_pptk as namaPptk, i_pptk_nip as nipPptk,
+        e_mohon as uraian, v_danatalangan as danaTalangan, c_angg_sumbdana as kodeSumbdana
+        FROM   TMBKUSPAGUTALANGAN
+        WHERE i_id = #{idtalangan}
+
+    </select>
+
+    <select id="getSisaKas" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select sum(paguAkb) as paguAkb, sum(paguAkb - spj) as saldoKas from (
+        SELECT
+        <if test="triwulan == 1 "> nvl(sum(v_rpa_bulan01 + v_rpa_bulan02 + v_rpa_bulan03),0) as paguAkb, </if>
+        <if test="triwulan == 2 "> nvl(sum(v_rpa_bulan04 + v_rpa_bulan05 + v_rpa_bulan06),0) as paguAkb, </if>
+        <if test="triwulan == 3 "> nvl(sum(v_rpa_bulan07 + v_rpa_bulan08 + v_rpa_bulan09),0) as paguAkb, </if>
+        <if test="triwulan == 4 "> nvl(sum(v_rpa_bulan10 + v_rpa_bulan11 + v_rpa_bulan12),0) as paguAkb, </if>
+        0 as kas , 0 as spj, 0 as st
+        FROM TMRKASBL WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+        AND I_IDKEGIATAN = #{idkegiatan}
+        and c_angg_sumbdana != 1
+
+        union all
+        select 0 as paguAkb, 0 as kas , nvl(sum(v_kas_keluar-v_kas_terima),0) as spj, 0 as st
+        from tmbkusbop, tmbkusboprinci
+        where tmbkusbop.i_id = tmbkusboprinci.i_idbkubop
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        AND I_IDKEGIATAN = #{idkegiatan}
+        and c_trx = 'JJ'
+        and i_bkuno_mohon != #{nobku}
+        and c_angg_triwulan = #{triwulan}
+
+        )
+
+    </select>
+
+
+    <insert id="insertPaguTalangan" parameterType="ebkus.model.PaguTalangan"  useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="id" >
+        INSERT INTO TMBKUSPAGUTALANGAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSEKOLAH,
+        I_IDSKPD,
+        C_BULAN_TAGIHAN,
+        C_ANGG_SUMBDANA,
+        I_PPTK_NRK,
+        N_PPTK,
+        I_PPTK_NIP,
+        E_MOHON,
+        V_DANATALANGAN,
+        I_IDMCB,
+        C_ANGG_TRIWULAN,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        #{id},
+        #{tahun},
+        #{idsekolah},
+        #{idskpd},
+        #{bulanTagihan},
+        #{kodeSumbdana},
+        #{nrk},
+        #{namaPptk},
+        #{nipPptk},
+        #{uraian},
+        #{danaTalangan},
+        #{idmcb},
+        #{triwulan},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    <delete id="deleteById" parameterType="java.util.Map"  >
+        DELETE TMBKUSPAGUTALANGAN WHERE  I_ID = #{id}
+    </delete>
+    <select id="getBkuEditSpj" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select distinct c_trx as kodeTransaksi,  to_char(D_DOC_BUKTI, 'mm') as kodeBulan, i_bkuno_ref as noBkuRef,
+        i_doc_bukti as noBukti ,  d_doc_bukti as tglDok, i_pptk_nrk as nrkPptk, c_angg_triwulan as triwulan,
+        i_filling as inboxFile , i_pptk_nip as nipPptk, n_pptk as namaPptk , e_rmks as uraian , i_bkuno_mohon as noBkuMohon,
+        c_uangpersediaan as kodePembayaran, i_idkegiatan as idKegiatan, i_rek_bank as norekBank, n_rekan as namaRekan,
+        c_bank as kodeBank, c_bank_transfer as kodeBankTf, n_bank_transfer as namaBank,
+        tmrkaskegiatan.c_kegiatan || ' / '|| n_kegiatan as ketKegiatan, tmrkaskegiatan.c_kegiatan as kodeKeg,
+        tmbkusbop.i_id as idBku, c_rek_bankva as kodeVa
+        from tmbkusbop left join tmrkaskegiatan on tmbkusbop.i_idkegiatan = tmrkaskegiatan.i_id
+        where  tmbkusbop.i_id =  #{idbku}
+
+    </select>
+
+    <select id="getDataKegiatan" parameterType="java.util.Map" resultType="ebkus.model.Kegiatan">
+        select trbkussnp.n_snp as ketSnp, trbkusbidang.n_bidang as ketBidang,
+        case
+        when c_angg_sumbdana = '1' then 'BOS'
+        when c_angg_sumbdana = '2' then 'BOP - Alokasi Dasar'
+        when c_angg_sumbdana = '3' then 'BOP - Alokasi Kinerja'
+        when c_angg_sumbdana = '4' then 'BOP - Alokasi Keadilan'
+        end as ketSumbdana
+        from tmrkaskegiatan, trbkussnp, trbkusbidang
+        where tmrkaskegiatan.i_idsnp = trbkussnp.i_id
+        and tmrkaskegiatan.i_idbidang = trbkusbidang.i_id
+        and tmrkaskegiatan.i_id = #{idkegiatan}
+    </select>
+
+    <update id="updateSpjMasterById" parameterType="ebkus.model.BukuKasUmum"   >
+        UPDATE TMBKUSBOP
+        SET
+        I_FILLING = #{inboxFile},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        E_DOC_BUKTI = #{uraianBukti},
+        I_PPTK_NRK = #{nrkPptk},
+        N_PPTK = #{namaPptk},
+        I_PPTK_NIP = #{nipPptk},
+        E_RMKS = #{uraian},
+        C_UANGPERSEDIAAN = #{kodeUangPersediaan},
+        I_IDKEGIATAN = #{idKegiatan},
+        C_KEGIATAN =  #{kodeKeg},
+        I_REK_BANK = regexp_replace(#{norekBank},'[-. /]',''),
+        N_REKAN = #{namaRekan},
+        C_BANK = #{kodeBank},
+        C_BANK_TRANSFER = #{kodeBankTf},
+        N_BANK_TRANSFER = #{namaBank},
+        C_REK_BANKVA = #{kodeVA},
+        C_DANATALANGAN = #{kodeTalangan},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{idBku}
+        AND C_TRX = #{kodeTransaksi}
+        AND C_ANGG_TAHUN = #{tahun}
+
+    </update>
+
+    <update id="updateSpjMasterByIdBukti" parameterType="ebkus.model.BukuKasUmum"   >
+        UPDATE TMBKUSBOP
+        SET
+        I_DOC_BUKTI = #{noDok}
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{idBku}
+        AND C_TRX = #{kodeTransaksi}
+        AND C_ANGG_TAHUN = #{tahun}
+
+    </update>
+
+    <update id="updateSpjRinciById" parameterType="ebkus.model.BkuRinci"   >
+        UPDATE TMBKUSBOPRINCI
+        SET
+        V_KAS_TERIMA = #{nilaiMasuk},
+        V_KAS_KELUAR = #{nilaiKeluar},
+        <if test="kodeTransaksi == 'JJ'">
+            V_SPJ_NETTO = #{nilaiKeluar},
+        </if>
+        I_IDBAS = #{idBas},
+        C_AKUN = #{kodeakun},
+        I_IDKOMPONEN = #{idKomponen},
+        I_IDBLRINCI = #{idBlRinci},
+        I_ANGG_NOURUT = #{noUrut},
+        N_KEGIATAN_SUB = #{namaSubKegiatan},
+        E_ANGG_RINCI = #{keteranganRinci},
+        Q_KOMPONEN_PAJAK = #{komponenPajak},
+        Q_KOMPONEN_VOLUME = #{volume},
+        V_KOMPONEN_HARGA = #{hargaSatuan},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{idBkuRinci}
+
+    </update>
+
+
+    <select id="getMaxTriwulanBop" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select nvl(max(c_angg_triwulan),1) from tmbkusbop b join trsekolah r
+        on b.i_idsekolah = r.i_id
+        where c_angg_tahun = #{tahun}
+        <if test="kodeotoritas == '0' ">
+            and  r.i_idskpd = #{idskpd}
+        </if>
+        <if test="kodeotoritas != '0' ">
+            and  r.i_npsn = #{npsn}
+        </if>
+    </select>
+    <select id="getMaxTriwulanBos" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select nvl(max(c_angg_triwulan),1) from tmbkusbos b join trsekolah r
+        on b.i_idsekolah = r.i_id
+        where c_angg_tahun = #{tahun}
+        <if test="kodeotoritas == '0' ">
+            and  r.i_idskpd = #{idskpd}
+        </if>
+        <if test="kodeotoritas != '0' ">
+            and  r.i_npsn = #{npsn}
+        </if>
+    </select>
+</mapper>

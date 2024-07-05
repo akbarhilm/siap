@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.KonversiRkasMapper">
+
+    <select id="getBudgetKegiatan" parameterType="java.util.Map"
+            resultType="ebkus.model.Konversi">
+        SELECT   COUNT (*) AS banyak, SUM (nilai_pagu) AS pagu
+        FROM belanja a
+        LEFT JOIN trsekolah b ON a.npsn = b.i_npsn
+        WHERE a.tahun = #{tahun} AND a.nilai_pagu &lt;&gt; 0
+        <!--ORDER BY d.i_id, a.kodegiat-->
+        UNION ALL
+        SELECT COUNT (*) AS banyak, SUM(V_ANGG_RKAS) AS pagu
+        FROM TMRKASKEGIATAN
+        WHERE C_ANGG_TAHUN = #{tahun}
+    </select>
+
+
+    <select id="getBudgetKegiatanRinci" parameterType="java.util.Map"
+            resultType="ebkus.model.Konversi">
+        SELECT COUNT (*) AS banyak, SUM (v_angg_rkas) AS pagu
+        FROM (SELECT tahun AS c_angg_tahun,
+        nilai_rincian AS v_angg_rkas
+        FROM belanjarincikomponen a INNER JOIN trsekolah b ON a.npsn = b.i_npsn
+        INNER JOIN tmrkaskegiatan c
+        ON c.i_idsekolah = b.i_id
+        AND a.kode_giat = c.c_kegiatan
+        AND a.tahun = c.c_angg_tahun
+        INNER JOIN trbas ON trbas.c_akun = a.kode_rekening
+        INNER JOIN trkategorikomponen e
+        ON a.kode_komponen = e.c_komponen AND a.tahun = e.c_angg_tahun
+        WHERE a.tahun = #{tahun}
+        AND #{tahun} BETWEEN trbas.c_tahun_berlaku AND trbas.c_tahun_berakhir
+        NILAI_RINCIAN > 0
+        )
+        UNION ALL
+        SELECT COUNT(*) AS banyak, SUM(V_ANGG_RKAS) AS pagu
+        FROM TMRKASBLRINCI
+        WHERE C_ANGG_TAHUN = #{tahun}
+    </select>
+
+
+    <select id="getBudgetKegiatanAkb" parameterType="java.util.Map"
+            resultType="ebkus.model.Konversi">
+        SELECT COUNT (*) AS banyak, SUM (  bulan1
+        + bulan2
+        + bulan3
+        + bulan4
+        + bulan5
+        + bulan6
+        + bulan7
+        + bulan8
+        + bulan9
+        + bulan10
+        + bulan11
+        + bulan12
+        ) AS pagu
+        FROM belanjarinciakb a, trsekolah, tmrkaskegiatan, trbas
+        WHERE a.tahun = #{tahun}
+        AND trsekolah.i_id = tmrkaskegiatan.i_idsekolah
+        AND a.tahun = tmrkaskegiatan.c_angg_tahun
+        AND a.npsn = trsekolah.i_npsn
+        AND a.kode_giat = tmrkaskegiatan.c_kegiatan
+        AND a.kode_rekening = trbas.c_akun
+        AND #{tahun} BETWEEN trbas.c_tahun_berlaku AND trbas.c_tahun_berakhir
+        NILAI_RINCIAN > 0
+        UNION ALL
+        SELECT COUNT(*) AS banyak, SUM(V_ANGG_RKAS) AS pagu
+        FROM TMRKASBL
+        WHERE C_ANGG_TAHUN = #{tahun}
+    </select>
+
+    <select id="getBudgetDataSekolah" parameterType="java.util.Map"
+            resultType="ebkus.model.Konversi">
+        SELECT COUNT (*) AS banyak, SUM (v_angg_blj) AS pagu
+        FROM (SELECT   a.c_angg_tahun, a.i_idsekolah, 0 v_angg_dpt,
+        NVL (SUM (a.v_angg_rkas), 0) v_angg_blj, 0 q_rkas_siswa,
+        0 q_rkas_guru, NULL i_rkas_murni, NULL d_rkas_murni,
+        NULL i_rkas_prbh, NULL d_rkas_prbh, 0 AS c_unlock,
+        NULL c_kode_skpdsah, NULL i_nrk_pa,
+        SUBSTR (d.i_nip_pa, 1, 18) AS i_nip_pa, d.n_pa n_pa,
+        d.n_pangkat_pa n_pangkat_pa, NULL i_nrk_pkdpt,
+        NULL i_nip_pkdpt, NULL n_pkdpt, NULL i_nrk_pkblj,
+        NULL i_nip_pkblj, NULL n_pkblj, NULL i_nrk_ppkdpt,
+        NULL i_nip_ppkdpt, NULL n_ppkdpt, NULL i_nrk_ppkblj,
+        NULL i_nip_ppkblj, NULL n_ppkblj, d.c_aktif c_aktif,
+        '-1' i_pgun_rekam, SYSDATE d_pgun_rekam, NULL i_pgun_ubah,
+        NULL d_rekam_ubah
+        FROM tmrkaskegiatan a INNER JOIN trsekolah d
+        ON a.i_idsekolah = d.i_id
+        WHERE a.c_angg_tahun = #{tahun}
+        GROUP BY a.c_angg_tahun,
+        a.i_idsekolah,
+        SUBSTR (d.i_nip_pa, 1, 18),
+        d.n_pa,
+        d.c_aktif,
+        d.n_pangkat_pa
+        ORDER BY a.i_idsekolah)
+        UNION ALL
+        SELECT COUNT(*) AS banyak, SUM(v_angg_blj) AS pagu
+        FROM TMRKAS
+        WHERE C_ANGG_TAHUN = #{tahun}
+    </select>
+
+    <select id="cekDuplicate" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        SELECT   COUNT (*) AS duplikat
+        FROM (SELECT   tahun, npsn, kode_giat, COUNT (*) AS jumlah_record
+        FROM belanja
+        WHERE tahun = #{tahun} AND nilai_pagu &lt;&gt; 0
+        GROUP BY tahun, npsn, kode_giat
+        HAVING COUNT (*) &gt; 1)
+    </select>
+
+    <insert id="prosesKegiatan" statementType="CALLABLE" parameterType="ebkus.model.Konversi">
+        {CALL PROC_INS_TMRKASKEGIATAN (#{tahun},#{idEntry})}
+    </insert>
+
+    <insert id="prosesKegiatanRinci" statementType="CALLABLE" parameterType="ebkus.model.Konversi">
+        {CALL PROC_INS_TMRKASBLRINCI (#{tahun},#{idEntry})}
+    </insert>
+
+    <insert id="prosesKegiatanAkb" statementType="CALLABLE" parameterType="ebkus.model.Konversi">
+        {CALL PROC_INS_TMRKASBL (#{tahun},#{idEntry})}
+    </insert>
+
+    <insert id="prosesDataSekolah" statementType="CALLABLE" parameterType="ebkus.model.Konversi">
+        {CALL PROC_INS_TMRKAS (#{tahun},#{idEntry})}
+    </insert>
+
+    <insert id="prosesKegiatanPerubahan" statementType="CALLABLE" parameterType="ebkus.model.Konversi">
+        {CALL PROC_INSUPD_TMRKASKEGIATAN (#{tahun},#{idEntry})}
+    </insert>
+
+    <insert id="prosesKegiatanRinciPerubahan" statementType="CALLABLE" parameterType="ebkus.model.Konversi">
+        {CALL PROC_INSUPD_TMRKASBLRINCI (#{tahun},#{idEntry})}
+    </insert>
+
+    <insert id="prosesKegiatanAkbPerubahan" statementType="CALLABLE" parameterType="ebkus.model.Konversi">
+        {CALL PROC_INSUPD_TMRKASBL (#{tahun},#{idEntry})}
+    </insert>
+
+    <insert id="prosesDataSekolahPerubahan" statementType="CALLABLE" parameterType="ebkus.model.Konversi">
+        {CALL PROC_INSUPD_TMRKAS (#{tahun},#{idEntry})}
+    </insert>
+
+    <select id="cekGiat" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak
+        FROM TMRKASKEGIATAN
+        WHERE C_ANGG_TAHUN = #{tahun}
+    </select>
+    <select id="cekGiatRinci" parameterType="java.util.Map"
+            resultType="ebkus.model.CekKonversi">
+        SELECT SUM (banyak1) AS banyak1, SUM (banyak2) AS banyak2
+        FROM (SELECT COUNT (*) AS banyak1, 0 AS banyak2
+        FROM tmrkaskegiatan
+        WHERE c_angg_tahun = #{tahun}
+        UNION ALL
+        SELECT 0 AS banyak1, COUNT (*) AS banyak2
+        FROM tmrkasblrinci
+        WHERE c_angg_tahun = #{tahun})
+    </select>
+</mapper>

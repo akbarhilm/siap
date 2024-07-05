@@ -1,0 +1,573 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.ReqTokenMapper">
+
+    <insert id="insertToken" parameterType="ebkus.model.Token">
+        insert into tmbkustoken(
+        c_angg_tahun,
+        i_idsekolah,
+        i_token,
+        i_pptk_nrk,
+        d_token_mohon,
+        d_token_bankdki,
+        d_token_berlaku,
+        i_bkuno_mohon,
+        c_angg_sumbdana
+        )values(
+        #{tahun},
+        #{idSekolah},
+        #{token},
+        #{nrk},
+        to_date(#{dMohon},'dd-mm-yyyy hh24:mi:ss'),
+        to_date(#{dMohonDki},'dd-mm-yyyy hh24:mi:ss'),
+        to_date(#{dMohon},'dd-mm-yyyy hh24:mi:ss') + interval '30' minute,
+        #{noBkuMohon},
+        #{kodeSumbdana}
+        )
+    </insert>
+
+    <select id="getTokenBop" parameterType="java.util.Map" resultType="ebkus.model.Token">
+        SELECT noBkuMohon, namaRekan, ketKegiatan, uraian, nilaiBku, nilaiNetto
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT i_bkuno_mohon AS noBkuMohon,
+        namaRekan,
+        ketKegiatan,
+        e_doc_bukti AS uraian,
+        nilaiBku, nilaiNetto
+        FROM (  SELECT n_rekan AS namaRekan,
+        REPLACE (
+        REPLACE (REPLACE (TRIM (E_DOC_BUKTI), '  ', ' '),
+        '  ',
+        ' '),
+        '  ',
+        ' ')
+        AS E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan)
+        AS ketKegiatan,
+        a.i_bkuno_mohon,
+        SUM (tmbkusboprinci.v_kas_keluar) AS nilaiBku,
+        SUM (tmbkusboprinci.v_spj_netto) AS nilaiNetto,
+        a.i_idsekolah
+        FROM    tmbkusbop a
+        LEFT JOIN
+        tmrkaskegiatan b
+        ON a.i_idkegiatan = b.i_id,
+        tmbkusboprinci
+        WHERE     a.i_id = tmbkusboprinci.i_idbkubop
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND c_trx IN ('JJ', 'ST')
+        AND c_bku_status = 3
+        AND c_bku_koreksi = 0
+        and nvl(c_rek_bankva,0) != 1
+        AND d_posting IS NULL
+        AND i_bkuno = 0
+        AND c_uangpersediaan = 2
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkustoken t
+        WHERE a.I_BKUNO_MOHON = t.i_bkuno_mohon
+        AND a.i_idsekolah = t.i_idsekolah
+        AND SYSDATE BETWEEN t.d_token_mohon
+        AND t.d_token_berlaku)
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE a.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(a.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = a.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        GROUP BY a.i_bkuno_mohon,
+        n_rekan,
+        E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan),
+        a.i_idsekolah
+        UNION ALL
+        SELECT n_rekan AS namaRekan,
+        REPLACE (
+        REPLACE (REPLACE (TRIM (E_DOC_BUKTI), '  ', ' '),
+        '  ',
+        ' '),
+        '  ',
+        ' ')
+        AS E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan)
+        AS ketKegiatan,
+        a.i_bkuno_mohon,
+        SUM (tmbkusboprinci.v_kas_keluar) AS nilaiBku,
+        SUM (tmbkusboprinci.v_spj_netto) AS nilaiNetto,
+        a.i_idsekolah
+        FROM    tmbkusbop a
+        LEFT JOIN
+        tmrkaskegiatan b
+        ON a.i_idkegiatan = b.i_id,
+        tmbkusboprinci
+        WHERE     a.i_id = tmbkusboprinci.i_idbkubop
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND (c_trx = 'JG' or c_trx = 'RT')
+        AND tmbkusboprinci.v_kas_keluar &gt; 0
+        AND c_bku_status = 3
+        AND c_bku_koreksi = 0
+        and nvl(c_rek_bankva,0) != 1
+        AND d_posting IS NULL
+        AND i_bkuno = 0
+        AND c_uangpersediaan = 2
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkustoken t
+        WHERE a.I_BKUNO_MOHON = t.i_bkuno_mohon
+        AND a.i_idsekolah = t.i_idsekolah
+        AND SYSDATE BETWEEN t.d_token_mohon
+        AND t.d_token_berlaku)
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE a.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(a.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = a.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        GROUP BY a.i_bkuno_mohon,
+        n_rekan,
+        E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan),
+        a.i_idsekolah) xxx,
+        trsekolah
+        WHERE xxx.i_idsekolah = trsekolah.i_id
+        ORDER BY i_bkuno_mohon
+        )a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getBanyakTokenBop" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*)  FROM   (
+        SELECT i_bkuno_mohon AS noBkuMohon,
+        namaRekan,
+        ketKegiatan,
+        e_doc_bukti AS uraian,
+        nilaiBku, nilaiNetto
+        FROM (  SELECT n_rekan AS namaRekan,
+        REPLACE (
+        REPLACE (REPLACE (TRIM (E_DOC_BUKTI), '  ', ' '),
+        '  ',
+        ' '),
+        '  ',
+        ' ')
+        AS E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan)
+        AS ketKegiatan,
+        a.i_bkuno_mohon,
+        SUM (tmbkusboprinci.v_kas_keluar) AS nilaiBku,
+        SUM (tmbkusboprinci.v_spj_netto) AS nilaiNetto,
+        a.i_idsekolah
+        FROM    tmbkusbop a
+        LEFT JOIN
+        tmrkaskegiatan b
+        ON a.i_idkegiatan = b.i_id,
+        tmbkusboprinci
+        WHERE     a.i_id = tmbkusboprinci.i_idbkubop
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND c_trx IN ('JJ', 'ST')
+        AND c_bku_status = 3
+        AND c_bku_koreksi = 0
+        and nvl(c_rek_bankva,0) != 1
+        AND d_posting IS NULL
+        AND i_bkuno = 0
+        AND c_uangpersediaan = 2
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkustoken t
+        WHERE a.I_BKUNO_MOHON = t.i_bkuno_mohon
+        AND a.i_idsekolah = t.i_idsekolah
+        AND SYSDATE BETWEEN t.d_token_mohon
+        AND t.d_token_berlaku)
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE a.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(a.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = a.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        GROUP BY a.i_bkuno_mohon,
+        n_rekan,
+        E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan),
+        a.i_idsekolah
+        UNION ALL
+        SELECT n_rekan AS namaRekan,
+        REPLACE (
+        REPLACE (REPLACE (TRIM (E_DOC_BUKTI), '  ', ' '),
+        '  ',
+        ' '),
+        '  ',
+        ' ')
+        AS E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan)
+        AS ketKegiatan,
+        a.i_bkuno_mohon,
+        SUM (tmbkusboprinci.v_kas_keluar) AS nilaiBku,
+        SUM (tmbkusboprinci.v_spj_netto) AS nilaiNetto,
+        a.i_idsekolah
+        FROM    tmbkusbop a
+        LEFT JOIN
+        tmrkaskegiatan b
+        ON a.i_idkegiatan = b.i_id,
+        tmbkusboprinci
+        WHERE     a.i_id = tmbkusboprinci.i_idbkubop
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND (c_trx = 'JG' or c_trx = 'RT')
+        AND tmbkusboprinci.v_kas_keluar &gt; 0
+        AND c_bku_status = 3
+        AND c_bku_koreksi = 0
+        and nvl(c_rek_bankva,0) != 1
+        AND d_posting IS NULL
+        AND i_bkuno = 0
+        AND c_uangpersediaan = 2
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkustoken t
+        WHERE a.I_BKUNO_MOHON = t.i_bkuno_mohon
+        AND a.i_idsekolah = t.i_idsekolah
+        AND SYSDATE BETWEEN t.d_token_mohon
+        AND t.d_token_berlaku)
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE a.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(a.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = a.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        GROUP BY a.i_bkuno_mohon,
+        n_rekan,
+        E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan),
+        a.i_idsekolah) xxx,
+        trsekolah
+        WHERE xxx.i_idsekolah = trsekolah.i_id
+        ORDER BY i_bkuno_mohon
+        )
+    </select>
+
+    <select id="getTokenBos" parameterType="java.util.Map" resultType="ebkus.model.Token">
+        SELECT noBkuMohon, namaRekan, ketKegiatan, uraian, nilaiBku, nilaiNetto
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT i_bkuno_mohon AS noBkuMohon,
+        namaRekan,
+        ketKegiatan,
+        e_doc_bukti AS uraian,
+        nilaiBku, nilaiNetto
+        FROM (  SELECT n_rekan AS namaRekan,
+        REPLACE (
+        REPLACE (REPLACE (TRIM (E_DOC_BUKTI), '  ', ' '),
+        '  ',
+        ' '),
+        '  ',
+        ' ')
+        AS E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan)
+        AS ketKegiatan,
+        a.i_bkuno_mohon,
+        SUM (tmbkusbosrinci.v_kas_keluar) AS nilaiBku,
+        SUM (tmbkusbosrinci.v_spj_netto) AS nilaiNetto,
+        a.i_idsekolah
+        FROM    tmbkusbos a
+        LEFT JOIN
+        tmrkaskegiatan b
+        ON a.i_idkegiatan = b.i_id,
+        tmbkusbosrinci
+        WHERE     a.i_id = tmbkusbosrinci.i_idbkubos
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND c_trx IN ('JJ', 'ST')
+        AND c_bku_status = 3
+        AND c_bku_koreksi = 0
+        AND d_posting IS NULL
+        and nvl(c_rek_bankva,0) != 1
+        AND i_bkuno = 0
+        AND c_uangpersediaan = 2
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkustoken t
+        WHERE a.I_BKUNO_MOHON = t.i_bkuno_mohon
+        AND a.i_idsekolah = t.i_idsekolah
+        AND SYSDATE BETWEEN t.d_token_mohon
+        AND t.d_token_berlaku)
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE a.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(a.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = a.i_id
+        AND bk.c_angg_sumbdana = 1
+        AND bk.c_bank_status = 1)
+        GROUP BY a.i_bkuno_mohon,
+        n_rekan,
+        E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan),
+        a.i_idsekolah
+        UNION ALL
+        SELECT n_rekan AS namaRekan,
+        REPLACE (
+        REPLACE (REPLACE (TRIM (E_DOC_BUKTI), '  ', ' '),
+        '  ',
+        ' '),
+        '  ',
+        ' ')
+        AS E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan)
+        AS ketKegiatan,
+        a.i_bkuno_mohon,
+        SUM (tmbkusbosrinci.v_kas_keluar) AS nilaiBku,
+        SUM (tmbkusbosrinci.v_spj_netto) AS nilaiNetto,
+        a.i_idsekolah
+        FROM    tmbkusbos a
+        LEFT JOIN
+        tmrkaskegiatan b
+        ON a.i_idkegiatan = b.i_id,
+        tmbkusbosrinci
+        WHERE     a.i_id = tmbkusbosrinci.i_idbkubos
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND (c_trx = 'JG' or c_trx = 'RT')
+        AND tmbkusbosrinci.v_kas_keluar &gt; 0
+        AND c_bku_status = 3
+        AND c_bku_koreksi = 0
+        AND d_posting IS NULL
+        AND i_bkuno = 0
+        and nvl(c_rek_bankva,0) != 1
+        AND c_uangpersediaan = 2
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkustoken t
+        WHERE a.I_BKUNO_MOHON = t.i_bkuno_mohon
+        AND a.i_idsekolah = t.i_idsekolah
+        AND SYSDATE BETWEEN t.d_token_mohon
+        AND t.d_token_berlaku)
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE a.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(a.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = a.i_id
+        AND bk.c_angg_sumbdana = 1
+        AND bk.c_bank_status = 1)
+        GROUP BY a.i_bkuno_mohon,
+        n_rekan,
+        E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan),
+        a.i_idsekolah) xxx,
+        trsekolah
+        WHERE xxx.i_idsekolah = trsekolah.i_id
+        ORDER BY i_bkuno_mohon
+        )a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getBanyakTokenBos" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*)  FROM   (
+        SELECT i_bkuno_mohon AS noBkuMohon,
+        namaRekan,
+        ketKegiatan,
+        e_doc_bukti AS uraian,
+        nilaiBku, nilaiNetto
+        FROM (  SELECT n_rekan AS namaRekan,
+        REPLACE (
+        REPLACE (REPLACE (TRIM (E_DOC_BUKTI), '  ', ' '),
+        '  ',
+        ' '),
+        '  ',
+        ' ')
+        AS E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan)
+        AS ketKegiatan,
+        a.i_bkuno_mohon,
+        SUM (tmbkusbosrinci.v_kas_keluar) AS nilaiBku,
+        SUM (tmbkusbosrinci.v_spj_netto) AS nilaiNetto,
+        a.i_idsekolah
+        FROM    tmbkusbos a
+        LEFT JOIN
+        tmrkaskegiatan b
+        ON a.i_idkegiatan = b.i_id,
+        tmbkusbosrinci
+        WHERE     a.i_id = tmbkusbosrinci.i_idbkubos
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND c_trx IN ('JJ', 'ST')
+        AND c_bku_status = 3
+        AND c_bku_koreksi = 0
+        AND d_posting IS NULL
+        AND i_bkuno = 0
+        AND c_uangpersediaan = 2
+        and nvl(c_rek_bankva,0) != 1
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkustoken t
+        WHERE a.I_BKUNO_MOHON = t.i_bkuno_mohon
+        AND a.i_idsekolah = t.i_idsekolah
+        AND SYSDATE BETWEEN t.d_token_mohon
+        AND t.d_token_berlaku)
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE a.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(a.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = a.i_id
+        AND bk.c_angg_sumbdana = 1
+        AND bk.c_bank_status = 1)
+        GROUP BY a.i_bkuno_mohon,
+        n_rekan,
+        E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan),
+        a.i_idsekolah
+        UNION ALL
+        SELECT n_rekan AS namaRekan,
+        REPLACE (
+        REPLACE (REPLACE (TRIM (E_DOC_BUKTI), '  ', ' '),
+        '  ',
+        ' '),
+        '  ',
+        ' ')
+        AS E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan)
+        AS ketKegiatan,
+        a.i_bkuno_mohon,
+        SUM (tmbkusbosrinci.v_kas_keluar) AS nilaiBku,
+        SUM (tmbkusbosrinci.v_spj_netto) AS nilaiNetto,
+        a.i_idsekolah
+        FROM    tmbkusbos a
+        LEFT JOIN
+        tmrkaskegiatan b
+        ON a.i_idkegiatan = b.i_id,
+        tmbkusbosrinci
+        WHERE     a.i_id = tmbkusbosrinci.i_idbkubos
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND (c_trx = 'JG' or c_trx = 'RT')
+        AND tmbkusbosrinci.v_kas_keluar &gt; 0
+        AND c_bku_status = 3
+        AND c_bku_koreksi = 0
+        AND d_posting IS NULL
+        AND i_bkuno = 0
+        and nvl(c_rek_bankva,0) != 1
+        AND c_uangpersediaan = 2
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkustoken t
+        WHERE a.I_BKUNO_MOHON = t.i_bkuno_mohon
+        AND a.i_idsekolah = t.i_idsekolah
+        AND SYSDATE BETWEEN t.d_token_mohon
+        AND t.d_token_berlaku)
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE a.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(a.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = a.i_id
+        AND bk.c_angg_sumbdana = 1
+        AND bk.c_bank_status = 1)
+        GROUP BY a.i_bkuno_mohon,
+        n_rekan,
+        E_DOC_BUKTI,
+        DECODE (b.c_kegiatan,
+        NULL, NULL,
+        b.c_kegiatan || ' / ' || b.n_kegiatan),
+        a.i_idsekolah) xxx,
+        trsekolah
+        WHERE xxx.i_idsekolah = trsekolah.i_id
+        ORDER BY i_bkuno_mohon
+        )
+    </select>
+    <select id="getTokenByBkuNo" parameterType="java.util.Map" resultType="ebkus.model.Token">
+        select c_angg_tahun as tahun, i_idsekolah as idSekolah, i_token as token, i_pptk_nrk as nrk,
+        to_char(d_token_mohon,'MM/DD/YYYY HH24:MI:SS') as dMohon, to_char(d_token_berlaku,'MM/DD/YYYY HH24:MI:SS') as dBerlaku, to_char(d_token_bankdki,'MM/DD/YYYY HH24:MI:SS') as dMohonDki
+        from tmbkustoken where i_idsekolah = #{idsekolah} and sysdate between d_token_mohon and d_token_berlaku and i_bkuno_mohon = #{noBkuMohon}
+        and c_angg_sumbdana = #{kodesumbdana}
+    </select>
+
+    <delete id="deleteToken" parameterType="java.util.Map"  >
+        delete tmbkustoken where i_idsekolah = #{idsekolah}
+        and to_char(d_token_mohon,'yyyymmdd') = #{dposting}
+        and i_token = #{token}
+        and c_angg_tahun = #{tahun}
+        and i_bkuno_mohon = #{nomohon}
+        and c_angg_sumbdana = #{kodesumbdana}
+    </delete>
+    <delete id="deleteTokenMohon" parameterType="java.util.Map"  >
+        delete tmbkustoken where i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and i_bkuno_mohon = #{nomohon}
+        and c_angg_sumbdana = #{kodesumbdana}
+    </delete>
+    <delete id="deleteTokenSemua" parameterType="java.util.Map"  >
+        delete tmbkustoken where i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and c_angg_sumbdana = #{kodesumbdana}
+    </delete>
+    <select id="getDate" resultType="ebkus.model.Token">
+        select to_char(sysdate,'DD/MM/YYYY HH24:MI:SS') as dMohon
+        from dual
+    </select>
+    <select id="getTimeLimitBop" parameterType="java.util.Map" resultType="ebkus.model.Token">
+        select distinct D_BANK_PAYMENT as dPayment
+        from trbankpfk a join tmbkusbop b on a.c_bank_transfer = b.c_bank_transfer
+        where b.i_bkuno_mohon = #{nomohon}
+        and b.i_idsekolah = #{idsekolah}
+        and b.c_angg_tahun = #{tahun}
+    </select>
+    <select id="getTimeLimitBos" parameterType="java.util.Map" resultType="ebkus.model.Token">
+        select distinct D_BANK_PAYMENT as dPayment
+        from trbankpfk a join tmbkusbos b on a.c_bank_transfer = b.c_bank_transfer
+        where b.i_bkuno_mohon = #{nomohon}
+        and b.i_idsekolah = #{idsekolah}
+        and b.c_angg_tahun = #{tahun}
+    </select>
+    <select id="getTimeLimitOn" resultType="ebkus.model.Token">
+        select distinct D_BANK_PAYMENT as dPayment
+        from trbankpfk where c_bank_us = 1
+    </select>
+</mapper>

@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.ReferensiMapper">
+    <!--
+    <select id="getAllSppPaguUp" parameterType="java.util.Map"  resultType="ebkus.model.SppPaguUp">
+        SELECT   I_ID AS id,
+        I_IDSKPD AS "skpd.idSkpd",
+        V_SPP AS nilaiSpp,
+        C_ANGG_TAHUN AS tahun,
+        I_PGUN_REKAM AS idEntry,
+        D_PGUN_REKAM AS tglEntry,
+        I_PGUN_UBAH AS idEdit,
+        D_PGUN_UBAH AS tglEdit,
+        N_SKPD AS "skpd.namaSkpd"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   T.I_ID,
+        T.I_IDSKPD,
+        T.V_SPP,
+        T.C_ANGG_TAHUN,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.I_PGUN_UBAH,
+        T.D_PGUN_UBAH,
+        S.N_SKPD
+        FROM      TRSPPPAGUUP T
+        LEFT JOIN
+        trskpd s
+        ON S.I_ID = T.I_IDSKPD
+        WHERE 1=1 
+        <if test="namaskpd != null and namaskpd != '' ">
+            and upper(S.N_SKPD) like '%'||upper(#{namaskpd})||'%'
+        </if> 
+        <if test="tahun != null and tahun != '' ">
+            and C_ANGG_TAHUN = #{tahun}
+        </if> 
+        ) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakSppPaguUp" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count(distinct( T.I_ID)) 
+        FROM   TRSPPPAGUUP T 
+        LEFT JOIN
+        trskpd s
+        ON S.I_ID = T.I_IDSKPD
+        WHERE 1=1 
+        <if test="namaskpd != null and namaskpd != '' ">
+            and upper(S.N_SKPD) like '%'||upper(#{namaskpd})||'%'
+        </if> 
+        <if test="tahun != null and tahun != '' ">
+            and C_ANGG_TAHUN = #{tahun}
+        </if> 
+    </select>  
+    <update id="updateSppPaguUp" parameterType="ebkus.model.SppPaguUp">
+        UPDATE   TRSPPPAGUUP
+        SET   V_SPP = #{nilaiSpp},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit}
+        WHERE   I_ID = #{id}
+    </update>   
+    <update id="pindahSppPaguTahun" parameterType="java.util.Map">
+        INSERT INTO THSPPPAGUUP (I_IDSPPPAGUUP,
+        I_IDSKPD,
+        V_SPP,
+        C_ANGG_TAHUN,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        I_PGUN_UBAH,
+        D_PGUN_UBAH)
+        SELECT   T.I_ID,
+        T.I_IDSKPD,
+        T.V_SPP,
+        T.C_ANGG_TAHUN,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.I_PGUN_UBAH,
+        T.D_PGUN_UBAH
+        FROM   TRSPPPAGUUP T
+        WHERE   T.C_ANGG_TAHUN = #{tahunlama}
+    </update> 
+    <delete  id="hapusSppPaguTahun" parameterType="java.util.Map">
+        UPDATE   TRSPPPAGUUP
+        SET   C_ANGG_TAHUN = #{tahunbaru} 
+        WHERE   C_ANGG_TAHUN = #{tahunlama}
+    </delete>       
+    <select id="getAllAkunRoot"  
+            resultType="java.util.Map">         
+        SELECT   I_ID AS "key",
+        C_AKUN ||'-'|| N_AKUN AS "title",
+        'true' AS "lazy",
+        'true' AS "folder",
+        C_AKUN AS "kodeakun",
+        C_AKTIF AS "isaktif"
+        FROM   TRBAS T
+        WHERE   T.I_IDINDUK = 1
+    </select>
+    <select id="getAllAkunAnak"              resultType="java.util.Map">         
+        SELECT  I_ID AS "key",
+        C_AKUN ||'-'||N_AKUN  AS "title",
+        CASE
+        WHEN (SELECT   COUNT (x.I_ID)
+        FROM   TRBAS x
+        WHERE   X.I_IDINDUK = T.I_ID) > 0
+        THEN
+        'true'
+        ELSE
+        'false'
+        END as  "lazy",
+        'true' AS "folder",C_AKUN AS "kodeakun",C_AKTIF AS "isaktif"
+        FROM   TRBAS T
+        WHERE   T.I_IDINDUK = #{induk}
+    </select>    
+    <select id="getAkunByIdTambah" parameterType="java.lang.Integer"  resultType="ebkus.model.Akun">        
+        SELECT   
+        T.I_ID as idAkuninduk,
+        T.C_AKUN as kodeAkun,
+        T.C_TAHUN_BERLAKU as tahunBerlaku,
+        T.C_TAHUN_BERAKHIR as tahunBerakhir
+        FROM    TRBAS T
+        WHERE T.I_ID = #{value}
+    </select>
+    
+    <select id="getAkunById" parameterType="java.lang.Integer"  resultType="ebkus.model.Akun">        
+        SELECT   
+        T.I_ID as idAkun,
+        T.I_IDINDUK as idAkunInduk,
+        T.C_AKUN as kodeAkun,
+        T.N_AKUN as namaAkun,
+        T.C_AKTIF as isAktif,
+        T.C_TAHUN_BERLAKU as tahunBerlaku,
+        T.C_TAHUN_BERAKHIR as tahunBerakhir
+        FROM    TRBAS T
+        WHERE T.I_ID = #{value}
+    </select>
+    
+    <select id="getSkpdById" parameterType="java.lang.Integer"
+            resultType="ebkus.model.Skpd">
+        SELECT   DISTINCT T.I_ID AS idSkpd,
+        T.I_IDINDUK as idInduk,
+        T.C_SKPD AS kodeSkpd,
+        T.C_UNITKERJA AS kodeUnit,
+        T.N_SKPD AS namaSkpd,
+        T.N_SKPD_PENDEK AS namaSkpdPendek,
+        T.I_IDURUSAN AS "urusan.idUrusan",
+        T.C_AKTIF AS isAktif,
+        T.C_PENDAPATAN AS isPendapatan,
+        T.C_NERACA AS isNeraca,
+        T.C_KELURAHAN AS kodeKelurahan,
+        T.C_KECAMATAN AS kodeKecamatan,
+        T.C_SKPD_LEVEL AS levelSkpd,
+        T.C_KOMISI AS kodeKomisi,
+        T.C_ASISTEN AS kodeAsisten,
+        T.C_TAHUN_BERLAKU AS tahunBerlaku,
+        T.C_TAHUN_BERAKHIR AS tahunBerakhir
+        FROM   TRSKPD T
+        WHERE   T.I_ID = #{value}
+
+    </select>
+    
+    
+    <update id="editSkpd" parameterType="ebkus.model.Skpd"   >
+        UPDATE TRSKPD
+        SET  
+ 
+        I_IDINDUK = #{idInduk},
+        C_SKPD = #{kodeSkpd},
+        C_UNITKERJA = #{kodeUnit},
+        N_SKPD  = #{namaSkpd},
+        N_SKPD_PENDEK = #{namaSkpdPendek},
+        I_IDURUSAN = #{urusan.idUrusan},
+        C_AKTIF = #{isAktif},
+        C_PENDAPATAN = #{isPendapatan},
+        C_NERACA = #{isNeraca},
+        C_KELURAHAN =  #{kodeKelurahan},
+        C_KECAMATAN = #{kodeKecamatan},
+        C_SKPD_LEVEL = #{levelSkpd},
+        C_KOMISI = #{kodeKomisi},
+        C_ASISTEN = #{kodeAsisten},
+        C_TAHUN_BERLAKU = #{tahunBerlaku},
+        C_TAHUN_BERAKHIR = #{tahunBerakhir},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit}
+     
+        WHERE  I_ID  =  #{idSkpd}
+    </update>
+    
+    
+    <insert id="insertSkpd" parameterType="ebkus.model.Skpd"   >
+        INSERT INTO  TRSKPD (I_ID, 
+        I_IDINDUK, 
+        C_SKPD, 
+        C_UNITKERJA, 
+        N_SKPD, 
+        N_SKPD_PENDEK, 
+        I_IDURUSAN, 
+        C_AKTIF, 
+        C_PENDAPATAN,
+        C_NERACA,
+        C_KELURAHAN,
+        C_KECAMATAN, 
+        C_SKPD_LEVEL,
+        C_KOMISI,
+        C_ASISTEN,
+        C_TAHUN_BERLAKU,
+        C_TAHUN_BERAKHIR,
+        I_PGUN_REKAM, 
+        D_PGUN_REKAM )
+        VALUES ( SEQ_TRSKPD.nextval ,
+        #{idSkpd}, 
+        #{kodeSkpd}, 
+        #{kodeUnit}, 
+        #{namaSkpd}, 
+        #{namaSkpdPendek}, 
+        #{urusan.idUrusan}, 
+        #{isAktif}, 
+        #{isPendapatan}, 
+        #{isNeraca},
+        #{kodeKelurahan}, 
+        #{kodeKecamatan},
+        #{levelSkpd},
+        #{kodeKomisi},
+        #{kodeAsisten},
+        #{tahunBerlaku},
+        #{tahunBerakhir},
+        #{idEntry}, 
+        #{tglEntry} )
+    </insert>
+    
+    <select id="getUrusan" parameterType="java.util.Map"
+            resultType="ebkus.model.Skpd">
+        SELECT   I_ID AS idUrusan,
+        C_URUSAN AS kodeUrusan,
+        N_URUSAN AS namaUrusan
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   I_ID,
+        C_URUSAN,
+        N_URUSAN
+        FROM   TRURUSAN T 
+        <if test="urusan != null and urusan != '' ">
+            where upper( T.N_URUSAN) like '%'||upper(#{urusan})||'%'
+        </if> ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+             
+    </select>
+    
+    <select id="getBanyakAllUrusan" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        select count(i_id) from TRURUSAN T
+        <if test="bank != null and bank != '' ">
+            where upper( T.N_URUSAN) like '%'||upper(#{urusan})||'%'
+        </if>          
+    </select>
+    
+    <update id="updateAkun" parameterType="ebkus.model.Akun"   >
+        UPDATE  TRBAS SET
+        C_AKUN = #{kodeAkun},
+        N_AKUN = #{namaAkun},
+        C_AKTIF = #{isAktif},
+        C_TAHUN_BERLAKU = #{tahunBerlaku},
+        C_TAHUN_BERAKHIR = #{tahunBerakhir},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit}
+        WHERE I_ID = #{idAkun}
+    </update>
+    
+    <insert id="insertAkun" parameterType="ebkus.model.Akun"   >
+        INSERT INTO TRBAS(
+        I_ID, 
+        I_IDINDUK, 
+        C_AKUN, 
+        N_AKUN, 
+        C_AKTIF, 
+        C_TAHUN_BERLAKU, 
+        C_TAHUN_BERAKHIR, 
+        I_PGUN_REKAM, 
+        D_PGUN_REKAM 
+        ) VALUES (
+         SEQ_TRBAS.nextval,
+        #{idAkunInduk},
+        #{kodeAkun},
+        #{namaAkun},
+        #{isAktif},
+        #{tahunBerlaku},
+        #{tahunBerakhir},
+        #{idEdit},
+        #{tglEdit}
+        )
+        
+    </insert>
+    <select id="getAllBendaharaSpp" parameterType="java.util.Map"
+            resultType="ebkus.model.Bendahara">
+       SELECT   T.I_ID AS idBendahara,
+         T.I_IDSKPD AS "skpd.idSkpd",
+         T.I_NIP AS nip,
+         T.I_NRK AS nrk,
+         T.N_PEG AS nama,
+         T.N_JABATAN AS namaJabatan,
+         T.C_AKTIF AS isAktif,B.N_SKPD as "skpd.namaSkpd"
+  FROM   TRSPPBENDAHARA T  LEFT JOIN
+            trskpd b
+         ON B.I_ID = T.I_IDSKPD
+        WHERE 1=1 
+        <if test="nama != null and nama != '' ">
+            and upper(T.N_PEG) like '%'||upper(#{nama})||'%'
+        </if>
+        <if test="skpd != null  and    skpd != '' ">
+            and upper(B.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if> 
+          ORDER BY  
+                                <choose>
+                                    <when test="iSortCol_0 == 1 ">
+                                         T.I_NIP
+                                    </when>
+                                    <when test="iSortCol_0 == 2 ">
+                                          T.N_PEG
+                                    </when>
+                                     <when test="iSortCol_0 == 3 ">
+                                          B.N_SKPD
+                                    </when>                                      
+                                    <otherwise>
+                                         T.I_IDSKPD
+                                    </otherwise>
+                                    </choose>  
+                                    <choose>
+                                        <when test="sSortDir_0 == 'desc' " >
+                                            desc
+                                        </when>
+                                        <otherwise> 
+                                            asc
+                                        </otherwise>
+                                    </choose> 
+    </select> 
+     <select id="getBanyakBendaharaSpp" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+       SELECT   COUNT (DISTINCT (T.I_ID)) as banyak
+  FROM   TRSPPBENDAHARA T   WHERE 1=1 
+        <if test="nama != null and nama != '' ">
+            and upper(T.N_PEG) like '%'||upper(#{nama})||'%'
+        </if>
+        <if test="skpd != null  and    skpd != '' ">
+            and upper(B.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>           
+    </select>
+    <select id="getSpmBatasProses" parameterType="java.util.Map"
+            resultType="ebkus.model.SpmProses">
+        SELECT   T.I_ID as id,
+         T.C_BEBAN as kodeBeban,
+         T.C_JENIS as kodeJenis,
+         T.C_BATAS_WAKTU as batasWaktu
+  FROM   TRSPMPROSES T WHERE C_JENIS = #{jenis}  and  T.C_BEBAN = #{beban}          
+    </select>
+    -->
+</mapper>

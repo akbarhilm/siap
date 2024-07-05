@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.MonitoringBkuBopHarianMapper">
+
+    <select id="getListIndex" parameterType="java.util.Map" resultType="ebkus.model.MonitoringBkuBopHarian">
+        SELECT I_NOURUT as noUrut, I_BKUNO as noBku, E_TRX as namaTrx,
+        I_DOC_BUKTI as noBuktiDoc,(CASE WHEN D_DOC_BUKTI IS NULL THEN '' ELSE Tanggal(D_DOC_BUKTI) END) as tglBuktiDoc, E_DOC_BUKTI as keterangan,
+        V_KAS_TERIMA as perimaan,V_KAS_KELUAR as pengeluaran,SALDO as saldo
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT c_angg_tahun, i_idsekolah,
+        DECODE (ROWNUM,
+        1, NULL,
+        SUBSTR (d_posting, 7, 2)
+        || '/'
+        || SUBSTR (d_posting, 5, 2)
+        || '/'
+        || SUBSTR (d_posting, 1, 4)
+        ) AS tgl_posting,
+        ROWNUM AS i_nourut, i_bkuno,
+        (select e_org_fungsi from trkoderef where c_org_fungsi = 10 and  c_org_fungsiref = c_trx) as e_trx,
+        i_idtrx, i_doc_bukti, d_doc_bukti,
+        e_doc_bukti, i_idkegiatan, c_kegiatan, i_idbas, c_akun,
+        v_kas_terima, v_kas_keluar,
+        SUM (v_kas_terima - v_kas_keluar) OVER (PARTITION BY i_idsekolah ORDER BY ROWNUM,
+        i_idsekolah RANGE UNBOUNDED PRECEDING) AS saldo,
+        DECODE (#{tglposting}, '0', NULL, SYSDATE) AS d_bku_proses,
+        #{tglposting}
+        FROM (
+        SELECT #{tahun} AS c_angg_tahun, #{idsekolah} AS i_idsekolah,
+        #{tglposting} AS d_posting, null as I_bkuno, NULL AS c_trx, NULL AS i_idtrx,
+        NULL AS i_doc_bukti, NULL AS d_doc_bukti,
+        (CASE
+        WHEN SUBSTR (#{tglposting}, 5, 4) = '0101'
+        THEN 'SALDO AWAL ' || #{tahun}
+        ELSE 'SALDO KAS AWAL ' || #{tglposting}
+        END
+        ) AS e_doc_bukti,
+        NULL AS i_idkegiatan, NULL AS c_kegiatan, NULL AS i_idbas,
+        NULL AS c_akun, NVL (SUM (v_kas_terima), '0') AS v_kas_terima,
+        0 AS v_kas_keluar
+        FROM (SELECT SUM (v_kas_terima - v_kas_keluar) v_kas_terima
+        FROM tmbkusbop a, tmbkusboprinci b
+        WHERE a.i_id = b.i_idbkubop
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND a.d_posting &lt; #{tglposting}
+        )
+        UNION ALL
+        SELECT *
+        FROM (SELECT   a.c_angg_tahun, #{idsekolah},
+        a.d_posting,a.I_bkuno as I_bkuno,   a.c_trx, a.i_idtrx,
+        a.i_doc_bukti, a.d_doc_bukti,
+        REPLACE (REPLACE (REPLACE (TRIM (e_doc_bukti), '  ', ' '),
+        '  ',
+        ' '
+        ),
+        '  ',
+        ' '
+        ),
+        a.i_idkegiatan, a.c_kegiatan, b.i_idbas, b.c_akun,
+        b.v_kas_terima, b.v_kas_keluar
+        FROM tmbkusbop a, tmbkusboprinci b
+        WHERE a.i_id = b.i_idbkubop
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND a.d_posting = #{tglposting}
+        ORDER BY a.d_posting, a.i_bkuno)
+        ) rrr
+        )
+        a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListIndex" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT c_angg_tahun, i_idsekolah,
+        DECODE (ROWNUM,
+        1, NULL,
+        SUBSTR (d_posting, 7, 2)
+        || '/'
+        || SUBSTR (d_posting, 5, 2)
+        || '/'
+        || SUBSTR (d_posting, 1, 4)
+        ) AS tgl_posting,
+        ROWNUM AS i_nourut, i_bkuno,
+        c_trx,
+        i_idtrx, i_doc_bukti, d_doc_bukti,
+        e_doc_bukti, i_idkegiatan, c_kegiatan, i_idbas, c_akun,
+        v_kas_terima, v_kas_keluar,
+        SUM (v_kas_terima - v_kas_keluar) OVER (PARTITION BY i_idsekolah ORDER BY ROWNUM,
+        i_idsekolah RANGE UNBOUNDED PRECEDING) AS saldo,
+        DECODE (#{tglposting}, '0', NULL, SYSDATE) AS d_bku_proses,
+        #{tglposting}
+        FROM (
+        SELECT #{tahun} AS c_angg_tahun, #{idsekolah} AS i_idsekolah,
+        #{tglposting} AS d_posting, null as I_bkuno, NULL AS c_trx, NULL AS i_idtrx,
+        NULL AS i_doc_bukti, NULL AS d_doc_bukti,
+        (CASE
+        WHEN SUBSTR (#{tglposting}, 5, 4) = '0101'
+        THEN 'SALDO AWAL ' || #{tahun}
+        ELSE 'SALDO KAS AWAL ' || #{tglposting}
+        END
+        ) AS e_doc_bukti,
+        NULL AS i_idkegiatan, NULL AS c_kegiatan, NULL AS i_idbas,
+        NULL AS c_akun, NVL (SUM (v_kas_terima), '0') AS v_kas_terima,
+        0 AS v_kas_keluar
+        FROM (SELECT SUM (v_kas_terima - v_kas_keluar) v_kas_terima
+        FROM tmbkusbop a, tmbkusboprinci b
+        WHERE a.i_id = b.i_idbkubop
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND a.d_posting &lt; #{tglposting}
+        )
+        UNION ALL
+        SELECT *
+        FROM (SELECT   a.c_angg_tahun, #{idsekolah},
+        a.d_posting,a.I_bkuno as I_bkuno,   a.c_trx, a.i_idtrx,
+        a.i_doc_bukti, a.d_doc_bukti,
+        REPLACE (REPLACE (REPLACE (TRIM (e_doc_bukti), '  ', ' '),
+        '  ',
+        ' '
+        ),
+        '  ',
+        ' '
+        ),
+        a.i_idkegiatan, a.c_kegiatan, b.i_idbas, b.c_akun,
+        b.v_kas_terima, b.v_kas_keluar
+        FROM tmbkusbop a, tmbkusboprinci b
+        WHERE a.i_id = b.i_idbkubop
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND a.d_posting = #{tglposting}
+        ORDER BY a.d_posting, a.i_bkuno)
+        ) rrr
+
+        )
+    </select>
+
+    <select id="getNilaiIndex" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT nvl(sum  (v_kas_terimasum),0) nilaiMasuk , nvl(sum ( v_kas_keluarsum),0) nilaiKeluar ,
+        nvl(sum(v_kas_terimasum - v_kas_keluarsum ) ,0)  as nilaiSisa FROM (
+        SELECT   (a.v_kas_terimasum)  ,(a.v_kas_keluarsum)
+        FROM tmbkusbop a
+        WHERE a.c_angg_tahun = #{tahun}
+        AND i_idsekolah = #{idsekolah}
+        AND SUBSTR (d_posting, 5,2) &lt;= #{bulan}
+        )
+
+    </select>
+
+</mapper>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.PenggunaModulMapper">
+    <select id="getListModul" parameterType="java.util.Map" resultType="ebkus.model.PenggunaModul" >         
+       select idModul,idInduk,kodeDetail,noModul,namaModul,uraianModul,sum(kodeOtoritas) kodeOtoritas
+from(
+select a.i_id as idModul,a.i_idinduk as idInduk, a.c_detail as kodeDetail,a.i_modul_no as noModul, a.n_modul as namaModul, a.e_modul as uraianModul, 0 as kodeOtoritas
+from trbkusmodul a
+        where 1=1
+         <if test="kodeotor != '' and kodeotor!= null ">
+             and
+         <if test="kodeotor == 9 ">
+             a.c_modul_superadmin = '1'
+        </if>
+        <if test="kodeotor == 8 ">
+             a.c_modul_admin = '1'
+        </if>
+        <if test="kodeotor == 0 ">
+             a.c_modul_sudin = '1'
+        </if>
+        <if test="kodeotor == 1 ">
+             a.c_modul_PA = '1'
+        </if>
+        <if test="kodeotor == 2 ">
+             a.c_modul_PK = '1'
+        </if>
+        
+         </if>
+        
+union all
+select a.i_id as idModul,a.i_idinduk as idInduk, a.c_detail as kodeDetail,a.i_modul_no as noModul, a.n_modul as namaModul, a.e_modul as uraianModul, 1 as kodeOtoritas
+from trbkusmodul a, trbkuspenggunamodul b
+where b.i_idmodul = a.i_id and b.i_idpengguna = #{idpengguna}
+)
+group by idModul,idInduk,kodeDetail,noModul,namaModul,uraianModul
+order by idModul
+    </select>
+    <select id="getBanyakListModul" parameterType="java.util.Map"  resultType="java.lang.Integer">         
+        select count(*) as banyak from(select idModul,idInduk,kodeDetail,noModul,namaModul,uraianModul,sum(kodeOtoritas) kodeOtoritas
+from(
+select a.i_id as idModul,a.i_idinduk as idInduk, a.c_detail as kodeDetail,a.i_modul_no as noModul, a.n_modul as namaModul, a.e_modul as uraianModul, 0 as kodeOtoritas
+from trbkusmodul a
+union all
+select a.i_id as idModul,a.i_idinduk as idInduk, a.c_detail as kodeDetail,a.i_modul_no as noModul, a.n_modul as namaModul, a.e_modul as uraianModul, 1 as kodeOtoritas
+from trbkusmodul a, trbkuspenggunamodul b
+where b.i_idmodul = a.i_id and b.i_idpengguna = #{idpengguna}
+)
+group by idModul,idInduk,kodeDetail,noModul,namaModul,uraianModul
+order by 1)
+    </select>
+    <insert id="insertPenggunaModul" parameterType="ebkus.model.PenggunaModul">
+        INSERT INTO TRBKUSPENGGUNAMODUL (
+        I_IDPENGGUNA
+        ,I_IDMODUL
+        ,C_AKTIF
+        ,I_PGUN_REKAM
+        ,D_PGUN_REKAM
+        )
+        VALUES (
+        #{idPengguna}
+        ,#{idModul}
+        ,1      
+        ,#{idEntry}
+        ,SYSDATE
+        ) 
+    </insert>
+   
+     <delete id="deletePenggunaModul" parameterType="ebkus.model.PenggunaModul" >
+        DELETE FROM TRBKUSPENGGUNAMODUL WHERE I_IDPENGGUNA = #{idPengguna}
+    </delete>
+    
+</mapper>

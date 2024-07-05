@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.FormBkuMapper">
+
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF  where i_id = '1'
+    </select>
+
+    <select id="getSaldoAwalTunai"   parameterType="java.util.Map" resultType="ebkus.model.FormBku">
+
+        SELECT sum(saldoawal + kas_sebelum) AS saldoawal
+        FROM (SELECT NVL (v_saldoawal_debet, 0) AS saldoawal, 0 AS kas_sebelum
+        FROM tmjoursaldoawal
+        WHERE i_idbas = 9947 AND c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT 0 saldoawal,
+        NVL (SUM (v_kas_terima - v_kas_keluar), 0) kas_sebelum
+        FROM tmbkuskpdpengeluaran
+        WHERE <!--(c_akun = '1.1.1.03.01.001' OR c_trx IN ('JJ', 'NP', 'NM')) -->
+        c_uangpersediaan = 1
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        AND SUBSTR (d_posting, 1, 6) &lt; #{tahun} || #{bulan})
+    </select>
+
+    <select id="getSaldoAwalBank"   parameterType="java.util.Map" resultType="ebkus.model.FormBku">
+        SELECT sum(saldoawal + kas_sebelum) AS saldoawal
+        FROM (SELECT NVL (v_saldoawal_debet, 0) AS saldoawal, 0 AS kas_sebelum
+        FROM tmjoursaldoawal
+        WHERE i_idbas NOT IN (9947, 9949) <!-- UNTUK SELAIN TUNAI DIANGGAP BANK-->
+        AND c_angg_tahun = #{tahun} AND i_idsekolah = #{idsekolah}
+        UNION ALL
+        SELECT 0 saldoawal,
+        NVL (SUM (v_kas_terima - v_kas_keluar), 0) kas_sebelum
+        FROM tmbkuskpdpengeluaran
+        WHERE <!-- c_trx IN ( 'JO','P1','P2','P3','P4','P5','P6','ST','LL' )
+        OR -->
+        c_uangpersediaan = 2
+        AND c_angg_tahun = #{tahun}
+        AND i_idsekolah = #{idsekolah}
+        AND SUBSTR (d_posting, 1, 6) &lt; #{tahun} || #{bulan})
+
+    </select>
+
+    <select id="getSaldoAwalPanjar"   parameterType="java.util.Map" resultType="ebkus.model.FormBku">
+        SELECT sum(saldoawal + kas_sebelum) AS saldoawal
+        FROM (SELECT NVL (v_saldoawal_debet, 0) AS saldoawal, 0 AS kas_sebelum
+        FROM tmjoursaldoawal
+        WHERE i_idbas = 9949 AND c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT 0 saldoawal,
+        NVL (SUM (v_kas_terima - v_kas_keluar), 0) kas_sebelum
+        FROM tmbkuskpdpengeluaran
+        WHERE (
+        <!-- c_akun = '1.1.1.03.01.003' AND c_trx IN ( 'NP','NM' )  -->
+        c_uangpersediaan = 3
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        AND SUBSTR (d_posting, 1, 6) &lt; #{tahun} || #{bulan}))
+
+    </select>
+
+    <select id="getAkunBelanja"   parameterType="java.util.Map" resultType="ebkus.model.FormBku">
+        select distinct B.I_ID, B.c_akun as kodeakun, B.c_akun ||'/'||B.n_akun as namaakun
+        from tmbkusbop A, trbas B, tmbkusboprinci C
+        where  C.i_idbas = B.i_id
+        and A.I_ID = C.i_idbkubop
+        and  i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and B.c_akun like '5%'
+        order by B.c_akun
+    </select>
+
+    <select id="getKegiatan" parameterType="java.util.Map"  resultType="ebkus.model.Kegiatan">
+        select  distinct  i_idkegiatan as idKegiatan,
+        n_kegiatan as namaKegiatan
+        from tmrkasbl B, tmrkaskegiatan K, trbkusbidang , trbkussnp
+        where B.i_idkegiatan = K.i_id
+        and B.c_angg_tahun = #{tahun}
+        and B.i_idsekolah = #{idsekolah}
+        and B.c_angg_sumbdana != 1
+        and K.i_idbidang = trbkusbidang.i_id
+        and K.i_idsnp = trbkussnp.i_id
+        <if test="triwulan == 1 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0 )
+        </if>
+
+        <if test="triwulan == 2 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0 )
+            and (v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0 )
+        </if>
+
+        <if test="triwulan == 3 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0 )
+            and (v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0 )
+            and (v_rpa_bulan07 > 0 or v_rpa_bulan08 > 0 or v_rpa_bulan09 > 0 )
+        </if>
+
+        <if test="triwulan == 4 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0 )
+            and (v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0 )
+            and (v_rpa_bulan07 > 0 or v_rpa_bulan08 > 0 or v_rpa_bulan09 > 0 )
+            and (v_rpa_bulan10 > 0 or v_rpa_bulan11 > 0 or v_rpa_bulan12 > 0 )
+        </if>
+
+        order by i_idkegiatan
+
+    </select>
+
+    <select id="getWilayah" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select c_wilayah as kodeWilayah, n_wilayah as ketWilayah
+        from trwilayah
+        where c_aktif = 1
+        order by c_wilayah
+
+    </select>
+
+    <select id="getTriwulan" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select distinct(c_angg_triwulan) as triwulan
+        from tmbkusbop
+        where i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and exists (select 1 from tmbkusboprekap where i_idsekolah = #{idsekolah})
+    </select>
+
+    <select id="getSaldoAwalPajak"   parameterType="java.util.Map" resultType="ebkus.model.FormBku">
+
+        select nvl(sum(v_kas_terima - v_kas_keluar),0) as saldoawal
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = #{jenis}
+        and substr(d_posting,5,2) &lt; #{bulan}
+
+    </select>
+
+    <select id="cekRekap" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) from tmbkusboprekap where i_idsekolah= #{idsekolah}
+        and c_angg_tahun = #{tahun}
+    </select>
+
+    <select id="getBanyakListCetakSetor" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(idSetor) from (
+        select a.i_id as idSetor, a.c_angg_tahun as tahunAnggaran, a.i_setor as noSetor,
+        (CASE
+        WHEN a.c_trx = 'ST' and a.c_angg_sumbdana = '1'
+        THEN 'SETORAN SISA BELANJA BOS'
+        WHEN a.c_trx = 'ST' and a.c_angg_sumbdana = '2'
+        THEN 'SETORAN SISA BELANJA BOP'
+        WHEN a.c_trx = 'JG'
+        THEN 'JASA GIRO'
+        ELSE 'SALAH'
+        END
+        ) AS kodeTransaksi, a.v_setor as nilaiSetor,
+        b.i_nrk_pa as nrkPA, b.i_nip_pa as nipPA, b.n_pa as namaPA, b.n_pangkat_pa as pangkatPA,
+        b.i_nrk_pkblj as nrkPK, b.i_nip_pkblj as nipPK, b.n_pkblj as namaPK, '-' as pangkatPK, 'PENGAJUAN' as statusCetak
+        from tmsetor a, tmrkas b
+        where a.i_idsekolah = b.i_idsekolah
+        and a.c_angg_tahun = b.c_angg_tahun
+        and a.i_idsekolah = #{idsekolah}
+        and a.c_angg_tahun = #{tahun}
+        and not exists (select 1 from tmsetorcetak c where a.i_id = c.i_id)
+        <!--and not exists (select 1 from tmbkusbop d where a.i_sts = d.i_doc_bukti and i_bkuno is null)-->
+        union all
+        select a.i_id, a.c_angg_tahun as tahunAnggaran, a.i_setor as noSetor,
+        (CASE
+        WHEN a.c_trx = 'ST' and a.c_angg_sumbdana = '1'
+        THEN 'SETORAN SISA BELANJA BOS'
+        WHEN a.c_trx = 'ST' and a.c_angg_sumbdana = '2'
+        THEN 'SETORAN SISA BELANJA BOP'
+        WHEN a.c_trx = 'JG'
+        THEN 'JASA GIRO'
+        ELSE 'SALAH'
+        END
+        ) AS kodeTransaksi, a.v_setor as nilaiSetor,
+        b.i_nrk_pa, b.i_nip_pa, b.n_pa, b.n_pangkat_pa, b.i_nrk_pkblj, b.i_nip_pkblj, b.n_pkblj, '-' as pangkatPK, 'CETAK' as status
+        from tmsetor a, tmrkas b
+        where a.i_idsekolah = b.i_idsekolah
+        and a.c_angg_tahun = b.c_angg_tahun
+        and a.i_idsekolah = #{idsekolah}
+        and a.c_angg_tahun = #{tahun}
+        and exists (select 1 from tmsetorcetak c where a.i_id = c.i_id )
+        )
+    </select>
+
+    <select id="getListCetakSetor" parameterType="java.util.Map" resultType="ebkus.model.Setor">
+        SELECT idSetor, tahunAnggaran, noSetor, kodeTransaksi, nilaiSetor, ctrx,
+        nrkPA, nipPK, namaPA, pangkatPA, nrkPK, nipPK, namaPK, pangkatPK, statusCetak
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        select a.i_id as idSetor, a.c_angg_tahun as tahunAnggaran, a.i_setor as noSetor,
+        (CASE
+        WHEN a.c_trx = 'ST' and a.c_angg_sumbdana = '1'
+        THEN 'SETORAN SISA BELANJA BOS'
+        WHEN a.c_trx = 'ST' and a.c_angg_sumbdana = '2'
+        THEN 'SETORAN SISA BELANJA BOP'
+        WHEN a.c_trx = 'RT' and a.c_angg_sumbdana = '1'
+        THEN 'PENDAPATAN LAIN-LAIN BOS'
+        WHEN a.c_trx = 'RT' and a.c_angg_sumbdana = '2'
+        THEN 'PENDAPATAN LAIN-LAIN BOP'
+        WHEN a.c_trx = 'JG'
+        THEN 'JASA GIRO'
+        ELSE 'SALAH'
+        END
+        ) AS kodeTransaksi, a.v_setor as nilaiSetor, a.c_trx as ctrx,
+        b.i_nrk_pa as nrkPA, b.i_nip_pa as nipPA, b.n_pa as namaPA, b.n_pangkat_pa as pangkatPA,
+        b.i_nrk_pkblj as nrkPK, b.i_nip_pkblj as nipPK, b.n_pkblj as namaPK, '-' as pangkatPK, 'PENGAJUAN' as statusCetak
+        from tmsetor a, tmrkas b
+        where a.i_idsekolah = b.i_idsekolah
+        and a.c_angg_tahun = b.c_angg_tahun
+        and a.i_idsekolah = #{idsekolah}
+        and a.c_angg_tahun = #{tahun}
+        and not exists (select 1 from tmsetorcetak c where a.i_id = c.i_id)
+        <!--and not exists (select 1 from tmbkusbop d where a.i_sts = d.i_doc_bukti and i_bkuno is null)-->
+        union all
+        select a.i_id, a.c_angg_tahun as tahunAnggaran, a.i_setor as noSetor,
+        (CASE
+        WHEN a.c_trx = 'ST' and a.c_angg_sumbdana = '1'
+        THEN 'SETORAN SISA BELANJA BOS'
+        WHEN a.c_trx = 'ST' and a.c_angg_sumbdana = '2'
+        THEN 'SETORAN SISA BELANJA BOP'
+        WHEN a.c_trx = 'RT' and a.c_angg_sumbdana = '1'
+        THEN 'PENDAPATAN LAIN-LAIN BOS'
+        WHEN a.c_trx = 'RT' and a.c_angg_sumbdana = '2'
+        THEN 'PENDAPATAN LAIN-LAIN BOP'
+        WHEN a.c_trx = 'JG'
+        THEN 'JASA GIRO'
+        ELSE 'SALAH'
+        END
+        ) AS kodeTransaksi, a.v_setor as nilaiSetor, a.c_trx as ctrx,
+        b.i_nrk_pa, b.i_nip_pa, b.n_pa, b.n_pangkat_pa, b.i_nrk_pkblj, b.i_nip_pkblj, b.n_pkblj, '-' as pangkatPK, 'CETAK' as status
+        from tmsetor a, tmrkas b
+        where a.i_idsekolah = b.i_idsekolah
+        and a.c_angg_tahun = b.c_angg_tahun
+        and a.i_idsekolah = #{idsekolah}
+        and a.c_angg_tahun = #{tahun}
+        and a.c_angg_sumbdana != '1'
+        and exists (select 1 from tmsetorcetak c where a.i_id = c.i_id )
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+
+</mapper>

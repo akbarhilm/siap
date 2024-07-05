@@ -1,0 +1,512 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.PajakTransferBosMapper">
+
+    <select id="getDataPajak" parameterType="java.util.Map" resultType="ebkus.model.PajakTransfer">
+        select tmbkusbos.i_idsekolah as idsekolah,
+        tmbkusbos.i_id as idBku,
+        i_bkuno_mohon as noBkuMohon,
+        C_TRX as kodeTransaksi,
+        sum(v_kas_keluar) as nilaiPajak,
+        E_DOC_BUKTI as uraian,
+        substr(I_REKAN_NPWP,0,15) as npwpRekanan,
+        substr(N_REKAN_NPWP,0,30) as namaWp,
+        substr(A_REKAN_NPWP,0,50) as alamatWp,
+        substr(N_KOTA_NPWP,0,30) as kotaWp,
+        I_REK_BANKBOS as norekBank,
+        N_REK_BANKBOS as namaPengirimBank,
+        tmbkusbos.C_DJP_KJS as kodeJenisSetor,
+        tmbkusbos.C_DJP_MAP as akunPajak,
+        tmbkusbosC_MASA_PAJAK as masaPajak,
+        '-' as noSk,
+        nvl(tmbkusbospotpajak.c_billing,0) as kodeBilling,
+        D_BILLING_EXP as tglBillExp,
+        C_BANK_BUKU as tglBuku,
+        nvl(C_BPN_STATUS,'-') as statusBpn,
+        I_NPSN as npsn,
+        n_sekolah as namaSekolah,
+        d_pay as tglBayar,
+        i_ntb as ntb,
+        i_ntpn as ntpn,
+        c_angg_triwulan as "bku.triwulan",
+        i_doc_bukti as "bku.noBukti",
+        tmbkusbos.c_kegiatan || ' / '|| n_kegiatan as "bku.ketKegiatan", tmbkusbos.c_kegiatan as "bku.kodeKeg",
+        i_idkegiatan as "bku.idKegiatan",
+        i_pptk_nrk as "bku.nrkPptk",  i_pptk_nip as "bku.nipPptk", n_pptk as "bku.namaPptk",
+        regexp_replace(trsekolah.i_npwp,'[-. /]','') as npwpSekolah,
+        trsekolah.n_npwp as namaWpSekolah,
+        trsekolah.A_NPWP as alamatWpSekolah, n_npwp_kota as kotaWpSekolah, c_tahun_pajak as tahunPajak,
+        TRIM (TO_CHAR (tmbkusbos.i_id, '000000000000000'))  AS idApp, p_pot as persenPot
+        FROM tmrkaskegiatan, trsekolah, tmbkusbosrinci,
+        tmbkusbos left join tmbkusbospotpajak on i_idbku = tmbkusbos.i_id
+        where trsekolah.i_id = tmbkusbos.i_idsekolah
+        and tmbkusbos.i_id = tmbkusbosrinci.i_idbkubos
+        and tmrkaskegiatan.i_id = tmbkusbos.i_idkegiatan
+        and tmbkusbos.i_idsekolah = #{idsekolah}
+        and tmbkusbos.c_angg_tahun = #{tahun}
+        and tmbkusbos.i_id = #{idbku}
+        and c_trx =  #{kodetrx}
+        and v_kas_keluar > 0
+        group by tmbkusbos.i_idsekolah, i_bkuno_mohon,
+        C_TRX, E_DOC_BUKTI, substr(I_REKAN_NPWP,0,15),
+        substr(N_REKAN_NPWP,0,30), substr(A_REKAN_NPWP,0,50), substr(N_KOTA_NPWP,0,30),
+        I_REK_BANKBOS, N_REK_BANKBOS, tmbkusbos.C_DJP_KJS,
+        tmbkusbos.C_DJP_MAP, tmbkusbos.C_MASA_PAJAK, tmbkusbospotpajak.c_billing,
+        D_BILLING_EXP, C_BANK_BUKU, C_BPN_STATUS, I_NPSN, n_sekolah,
+        d_pay, i_ntb, i_ntpn, tmbkusbos.i_id, c_angg_triwulan, i_doc_bukti,
+        tmbkusbos.c_kegiatan || ' / '|| n_kegiatan, i_idkegiatan, i_pptk_nrk, i_pptk_nip, n_pptk,
+        tmbkusbos.c_kegiatan, trsekolah.i_npwp, trsekolah.n_npwp,
+        trsekolah.A_NPWP, n_npwp_kota, c_tahun_pajak, p_pot
+
+    </select>
+
+    <select id="getListBkuRinci" parameterType="java.util.Map"  resultType="ebkus.model.BkuRinci">
+
+        SELECT idBas, kodeakun, namaakun, idKomponen, namaKomponen, nilaiKeluar, kodeKomponen,
+        idBkuRinci, nilaiPajakSpj, nilaiNettoSpj, idBlRinci, namaSubKegiatan, keteranganRinci
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        select tmbkusbosrinci.i_idbas as idBas, tmbkusbosrinci.c_akun as kodeakun, n_akun as namaakun,
+        i_idkomponen as idKomponen, n_komponen as namaKomponen, v_kas_keluar as nilaiKeluar,c_komponen as kodeKomponen,
+        tmbkusbosrinci.i_id as idBkuRinci, v_spj_pajak as nilaiPajakSpj, v_spj_netto as nilaiNettoSpj,
+        i_idblrinci as idBlRinci, n_kegiatan_sub as namaSubKegiatan, e_angg_rinci as keteranganRinci
+        from tmbkusbosrinci, trbas, trkategorikomponen
+        where tmbkusbosrinci.i_idbas =  trbas.i_id
+        and tmbkusbosrinci.i_idkomponen = trkategorikomponen.i_id
+        and i_idbkubos = #{idbku}
+        ) a) WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListBkuRinci" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select tmbkusbosrinci.i_idbas as idBas, tmbkusbosrinci.c_akun as kodeakun, n_akun as namaakun,
+        i_idkomponen as idKomponen, n_komponen as namaKomponen, v_kas_keluar as nilaiKeluar
+        from tmbkusbosrinci, trbas, trkategorikomponen
+        where tmbkusbosrinci.i_idbas =  trbas.i_id
+        and tmbkusbosrinci.i_idkomponen = trkategorikomponen.i_id
+        and i_idbkubos = #{idbku}
+        )
+    </select>
+
+    <select id="getBkuNo" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT   NVL (MAX (i_bkuno), 0) + 1 AS nobku
+        FROM   TMBKUSBOS
+        WHERE   c_angg_tahun = #{tahun}
+        AND i_idsekolah = #{idsekolah}
+
+    </select>
+
+    <update id="updateBkuById" parameterType="ebkus.model.BukuKasUmum"   >
+        UPDATE TMBKUSBOS
+        SET
+        D_POSTING = #{tglPosting},
+        I_BKUNO = #{noBKU},
+        C_BKU_TUTUP = 1,
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{idBku}
+        AND C_ANGG_TAHUN = #{tahun}
+
+    </update>
+
+    <select id="getDataSekolah" parameterType="java.util.Map" resultType="ebkus.model.BkuTransfer">
+        select i_rek_bankbos as  norekPengirim, n_rek_bankbos as namaPengirim, c_wil as wilayah,
+        i_npwp as npwp, n_npwp as namaWp, A_NPWP as alamatWp, n_npwp_kota as kotaWp
+        from trsekolah where i_id = #{idsekolah}
+
+    </select>
+
+    <select id="getSaldoKas" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select sum(jo-jj-st) as saldoKas from (
+        select nvl(sum(v_kas_terima-v_kas_keluar),0) as jo, 0 as jj, 0 as st
+        from tmbkusbos, tmbkusbosrinci
+        where tmbkusbos.i_id = tmbkusbosrinci.i_idbkubos
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        <!-- and c_bku_koreksi = 0  ditutup supaya menghitung nilai JO-SA-->
+        and c_trx = 'JO'
+        and c_angg_triwulan &lt;= #{triwulan}
+
+        union all
+        select 0 as jo, nvl(sum(v_kas_keluar),0) as jj, 0 as st
+        from tmbkusbos, tmbkusbosrinci
+        where tmbkusbos.i_id = tmbkusbosrinci.i_idbkubos
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and c_bku_koreksi = 0
+        and c_trx = 'JJ'
+        and d_posting is not null
+        and c_angg_triwulan &lt;= #{triwulan}
+
+        union all
+        select 0 as jo, 0 as jj, nvl(sum(v_kas_keluar),0) as st
+        from tmbkusbos, tmbkusbosrinci
+        where tmbkusbos.i_id = tmbkusbosrinci.i_idbkubos
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and c_bku_koreksi = 0
+        and c_trx = 'ST'
+        and d_posting is not null
+        and c_angg_triwulan &lt;= #{triwulan}
+        )
+    </select>
+
+
+    <insert id="insertBkuBankError" parameterType="ebkus.model.BkuTransfer" >
+        INSERT INTO TMBKUSBANKERROR (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDBKU,
+        I_BIT11,
+        I_IDSEKOLAH,
+        C_ANGG_SUMBDANA,
+        E_ERROR,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        #{id},
+        #{tahun},
+        #{idBku},
+        #{bit11},
+        #{idsekolah},
+        #{kodeSumbdana},
+        substr(#{pesanError},0,500),
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <insert id="insertDjpCreate" parameterType="ebkus.model.PajakTransfer" >
+        INSERT INTO TMBKUSDJPBANK (
+        C_ANGG_TAHUN,
+        D_BKU_KIRIMBANK,
+        I_IDBKU,
+        C_TRX,
+        I_BULKIDREQUEST,
+        I_IDREQUEST,
+        I_IDCHANNEL,
+        I_REK,
+        I_NPWP,
+        N_NPWP,
+        A_NPWP,
+        N_NPWP_KOTA,
+        C_DJP_KJS,
+        C_DJP_MAP,
+        C_MASA_PAJAK,
+        C_TAHUN_PAJAK,
+        I_SK,
+        I_NOP,
+        I_IDENTITASNO,
+        V_PAJAK,
+        I_NPWP_PENYETOR,
+        N_NPWP_PENYETOR,
+        E_PEMBAYARAN,
+        C_DJP_REQUEST,
+        C_APP
+        )VALUES(
+        #{tahun},
+        sysdate,
+        #{idBku},
+        #{kodeTransaksi},
+        #{bulkIdRequest},
+        #{idRequest},
+        #{idChannel},
+        #{norekBank},
+        #{npwpRekanan},
+        #{namaWp},
+        #{alamatWp},
+        #{kotaWp},
+        #{kodeJenisSetor},
+        #{akunPajak},
+        #{masaPajak},
+        #{tahunPajak},
+        #{noSk},
+        #{nop},
+        #{noIdentitas},
+        #{nilaiPajak},
+        #{npwpSekolah},
+        #{namaWpSekolah},
+        #{uraian},
+        #{kodeRequest},
+        #{kodeApp}
+        )
+    </insert>
+
+    <update id="updateDjpCreate" parameterType="ebkus.model.PajakTransfer"   >
+        UPDATE TMBKUSDJPBANK
+        SET
+        I_IDRESPONSE = #{idResponse},
+        N_DJP_KJS = #{namaKJS},
+        N_DJP_MAP = #{namaMAP},
+        C_PROSES = #{kodeProses},
+        C_RESPONSE = #{kodeResponse},
+        E_RESPONSE = #{uraianResponse},
+        C_BILLING = #{kodeBilling},
+        <if test="tglBillExpString != null and tglBillExpString != '' ">
+            D_BILLING_EXP = TO_DATE(#{tglBillExpString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        <if test="tglBayarString != null and tglBayarString != '' ">
+            D_PAY = TO_DATE(#{tglBayarString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        <if test="tglTransmisiString != null and tglTransmisiString != '' ">
+            D_PAY_TRASMISI = TO_DATE(#{tglTransmisiString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        <if test="tglBuku != null and tglBuku != '' ">
+            C_BANK_BUKU = #{tglBuku},
+        </if>
+        <if test="ntb != null and ntb != '' ">
+            I_NTB = #{ntb},
+        </if>
+        <if test="ntpn != null and ntpn != '' ">
+            I_NTPN = #{ntpn},
+        </if>
+        <if test="statusBpn != null and statusBpn != '' ">
+            C_BPN_STATUS = #{statusBpn}
+        </if>
+        C_STAN = #{kodeStan}
+
+        WHERE I_IDBKU = #{idBku}
+        AND I_BULKIDREQUEST = #{bulkIdRequest}
+    </update>
+
+    <update id="updateRinciPotPajak" parameterType="ebkus.model.PajakTransfer"   >
+        UPDATE TMBKUSBOSPOTPAJAK SET
+
+        <if test="kodeRequest == 1"> -- create kode billing
+            I_BULKIDREQUEST = #{bulkIdRequest},
+            I_IDREQUEST = #{idRequest},
+            C_BILLING = #{kodeBilling},
+            <if test="tglBillExpString != null and tglBillExpString != '' ">
+                D_BILLING_EXP = TO_DATE(#{tglBillExpString}, 'YYYYMMDDHH24MISS'),
+            </if>
+        </if>
+
+        <if test="kodeRequest == 2"> -- billing
+            I_BULKIDREQUEST = #{bulkIdRequest},
+            I_IDREQUEST = #{idRequest},
+            C_BANK_BUKU = #{tglBuku},
+            C_BPN_STATUS = #{statusBpn},
+            I_NTB = #{ntb},
+            I_NTPN = #{ntpn},
+            C_MASA_PAJAK = #{masaPajak},
+            C_STAN = #{kodeStan},
+            <if test="tglBayarString != null and tglBayarString != '' ">
+                D_PAY = TO_DATE(#{tglBayarString}, 'YYYYMMDDHH24MISS'),
+            </if>
+
+        </if>
+
+        <if test="kodeRequest == 3"> -- reinquiry
+            C_BANK_BUKU = #{tglBuku},
+            C_BPN_STATUS = #{statusBpn},
+            I_NTB = #{ntb},
+            I_NTPN = #{ntpn},
+            C_MASA_PAJAK = #{masaPajak},
+            C_STAN = #{kodeStan},
+            <if test="tglBayarString != null and tglBayarString != '' ">
+                D_PAY = TO_DATE(#{tglBayarString}, 'YYYYMMDDHH24MISS'),
+            </if>
+
+        </if>
+
+        D_PGUN_UBAH = sysdate,
+        I_PGUN_UBAH = #{idEntry}
+        where
+        I_IDBKU = #{idBku}
+
+    </update>
+
+    <insert id="insertDjpBilling" parameterType="ebkus.model.PajakTransfer" >
+        INSERT INTO TMBKUSDJPBANK (
+        C_ANGG_TAHUN,
+        D_BKU_KIRIMBANK,
+        I_IDBKU,
+        C_TRX,
+        I_BULKIDREQUEST,
+        I_IDREQUEST,
+        I_IDCHANNEL,
+        I_REK,
+        C_TAHUN_PAJAK,
+        I_NPWP_PENYETOR,
+        N_NPWP_PENYETOR,
+        E_PEMBAYARAN,
+        C_BILLING,
+        C_DJP_REQUEST,
+        C_APP
+        )VALUES(
+        #{tahun},
+        sysdate,
+        #{idBku},
+        #{kodeTransaksi},
+        #{bulkIdRequest},
+        #{idRequest},
+        #{idChannel},
+        #{norekBank},
+        #{tahunPajak},
+        #{npwpSekolah},
+        #{namaWpSekolah},
+        #{uraian},
+        #{kodeBilling},
+        #{kodeRequest},
+        #{kodeApp}
+        )
+    </insert>
+
+    <update id="updateDjpBilling" parameterType="ebkus.model.PajakTransfer"   >
+        UPDATE TMBKUSDJPBANK
+        SET
+        I_IDRESPONSE = #{idResponse},
+        I_NPWP = #{npwpRekanan},
+        N_NPWP = #{namaWp},
+        A_NPWP = #{alamatWp},
+        N_NPWP_KOTA = #{kotaWp},
+        C_DJP_KJS = #{kodeJenisSetor},
+        N_DJP_KJS = #{namaKJS},
+        C_DJP_MAP = #{akunPajak},
+        N_DJP_MAP = #{namaMAP},
+        C_MASA_PAJAK = #{masaPajak},
+        I_SK = #{noSk},
+        I_NOP = #{nop},
+        I_IDENTITASNO = #{noIdentitas},
+        V_PAJAK = #{nilaiPajak},
+        C_PROSES = #{kodeProses},
+        C_RESPONSE = #{kodeResponse},
+        E_RESPONSE = #{uraianResponse},
+        <if test="tglBillExpString != null and tglBillExpString != '' ">
+            D_BILLING_EXP = TO_DATE(#{tglBillExpString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        C_STAN = #{kodeStan},
+        <if test="tglBayarString != null and tglBayarString != '' ">
+            D_PAY = TO_DATE(#{tglBayarString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        <if test="tglTransmisiString != null and tglTransmisiString != '' ">
+            D_PAY_TRASMISI = TO_DATE(#{tglTransmisiString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        C_BANK_BUKU = #{tglBuku},
+        I_NTB = #{ntb},
+        I_NTPN = #{ntpn},
+        C_BPN_STATUS = #{statusBpn}
+        WHERE I_IDBKU = #{idBku}
+        AND I_BULKIDREQUEST = #{bulkIdRequest}
+    </update>
+
+    <insert id="insertDjpReinquiry" parameterType="ebkus.model.PajakTransfer" >
+        INSERT INTO TMBKUSDJPBANK (
+        C_ANGG_TAHUN,
+        D_BKU_KIRIMBANK,
+        I_IDBKU,
+        C_TRX,
+        I_BULKIDREQUEST,
+        I_IDREQUEST,
+        I_IDCHANNEL,
+        C_BILLING,
+        I_NTB,
+        C_DJP_REQUEST,
+        C_APP,
+        I_REK,
+        C_TAHUN_PAJAK
+        )VALUES(
+        #{tahun},
+        sysdate,
+        #{idBku},
+        #{kodeTransaksi},
+        #{bulkIdRequest},
+        #{idRequest},
+        #{idChannel},
+        #{kodeBilling},
+        #{ntb},
+        #{kodeRequest},
+        #{kodeApp},
+        #{norekBank},
+        #{tahunPajak}
+        )
+    </insert>
+
+    <update id="updateDjpReinquiry" parameterType="ebkus.model.PajakTransfer"   >
+        UPDATE TMBKUSDJPBANK
+        SET
+        I_IDRESPONSE = #{idResponse},
+        I_NPWP = #{npwpRekanan},
+        N_NPWP = #{namaWp},
+        A_NPWP = #{alamatWp},
+        C_DJP_KJS = #{kodeJenisSetor},
+        C_DJP_MAP = #{akunPajak},
+        C_MASA_PAJAK = #{masaPajak},
+        I_SK = #{noSk},
+        I_NOP = #{nop},
+        V_PAJAK = #{nilaiPajak},
+        I_NPWP_PENYETOR = #{npwpSekolah},
+        N_NPWP_PENYETOR = #{namaWpSekolah},
+        E_PEMBAYARAN = #{uraian},
+        C_RESPONSE = #{kodeResponse},
+        E_RESPONSE = #{uraianResponse},
+        C_STAN = #{kodeStan},
+        <if test="tglBayarString != null and tglBayarString != '' ">
+            D_PAY = TO_DATE(#{tglBayarString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        <if test="tglTransmisiString != null and tglTransmisiString != '' ">
+            D_PAY_TRASMISI = TO_DATE(#{tglTransmisiString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        C_BANK_BUKU = #{tglBuku},
+        I_NTPN = #{ntpn},
+        C_BPN_STATUS = #{statusBpn}
+        WHERE I_IDBKU = #{idBku}
+        AND I_BULKIDREQUEST = #{bulkIdRequest}
+    </update>
+
+    <insert id="insertRinciPotPajak" parameterType="ebkus.model.PajakTransfer" >
+        INSERT INTO TMBKUSBOSPOTPAJAK (
+        I_ID,
+        I_IDBKU,
+        I_BULKIDREQUEST,
+        I_IDREQUEST,
+        C_BILLING,
+        <if test="tglBillExpString != null and tglBillExpString != '' ">
+            D_BILLING_EXP,
+        </if>
+        C_DJP_KJS,
+        C_DJP_MAP,
+        D_PGUN_REKAM,
+        I_PGUN_REKAM
+        )VALUES(
+        #{id},
+        #{idBku},
+        #{bulkIdRequest},
+        #{idRequest},
+        #{kodeBilling},
+        <if test="tglBillExpString != null and tglBillExpString != '' ">
+            TO_DATE(#{tglBillExpString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        #{kodeJenisSetor},
+        #{akunPajak},
+        sysdate,
+        #{idEntry}
+        )
+    </insert>
+    <update id="updateInquiryMasterPot" parameterType="ebkus.model.PajakTransfer"   >
+        UPDATE TMBKUSBOS SET
+        i_rekan_npwp = #{npwpRekanan},
+        n_rekan_npwp = #{namaWp},
+        a_rekan_npwp = #{alamatWp},
+        D_PGUN_UBAH = sysdate,
+        I_PGUN_UBAH = #{idEntry}
+        where
+        I_ID = #{idBku}
+    </update>
+    <update id="updateInquiryPot" parameterType="ebkus.model.PajakTransfer"   >
+        UPDATE TMBKUSbosPOTPAJAK SET
+        v_pajak = #{nilaiPajak},
+        c_billing = #{kodeBilling},
+        D_PGUN_UBAH = sysdate,
+        I_PGUN_UBAH = #{idEntry}
+        where
+        I_IDBKU = #{idBku}
+    </update>
+    <update id="updateCetakCount" parameterType="java.util.Map"   >
+        UPDATE TMBKUSbosPOTPAJAK SET
+        Q_POT_CETAK = Q_POT_CETAK + 1
+        where
+        I_IDBKU = #{idbku}
+    </update>
+</mapper>

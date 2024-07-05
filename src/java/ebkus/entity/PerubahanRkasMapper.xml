@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.PerubahanRkasMapper">
+
+    <select id="getKegiatan" parameterType="java.util.Map" resultType="ebkus.model.Kegiatan">
+        select  distinct  i_idkegiatan as idKegiatan, B.c_angg_sumbdana as kodeSumbdana,
+        n_snp as ketSnp, n_bidang as ketBidang, c_kegiatan as kodeKegiatan,
+        n_kegiatan as namaKegiatan,
+        case
+        when B.c_angg_sumbdana = '2' then 'BOP - Alokasi Dasar'
+        when B.c_angg_sumbdana = '3' then 'BOP - Alokasi Kinerja'
+        when B.c_angg_sumbdana = '4' then 'BOP - Alokasi Keadilan'
+        end as ketSumbdana
+        from tmrkasbl B, tmrkaskegiatan K, trbkusbidang , trbkussnp
+        where B.i_idkegiatan = K.i_id
+        and B.c_angg_tahun = #{tahun}
+        and B.c_angg_sumbdana = #{kodesumbdana}
+        and K.i_idbidang = trbkusbidang.i_id
+        and K.i_idsnp = trbkussnp.i_id
+
+        order by i_idkegiatan, c_kegiatan
+    </select>
+    <select id="getAkun" parameterType="java.util.Map" resultType="ebkus.model.BkuRinci">
+        select a.i_id as idBas,
+        n_akun as namaakun,
+        c_akun as kodeakun from trbas a, tmrkasbl b
+        where a.i_id = b.i_idbas and b.i_idkegiatan = #{idkegiatan}
+    </select>
+</mapper>

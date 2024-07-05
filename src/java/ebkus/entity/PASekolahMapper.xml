@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.PASekolahMapper">
+    <select id="getListPASekolah" parameterType="java.util.Map" resultType="ebkus.model.PASekolah" >         
+        select a.i_id as idSekolah,a.i_npsn as npsn, a.n_sekolah_pendek as namaSekolah, a.a_sekolah as alamatSekolah, '1' as c_asal
+from trsekolah a, trbkuspengguna b
+where a.i_id = b.i_idsekolah
+and b.i_id = #{idpengguna}
+        union all
+       
+select a.i_id as idSekolah,a.i_npsn as npsn, a.n_sekolah_pendek as namaSekolah, a.a_sekolah as alamatSekolah, '0' as c_asal
+from trsekolah a, trbkuspenggunasekolah b
+where a.i_id = b.i_idsekolah
+and b.i_idpengguna = #{idpengguna}
+        and  B.C_AKTIF = 1
+    </select>
+    <select id="getBanyakListPASekolah" parameterType="java.util.Map"  resultType="java.lang.Integer">         
+        select count(*) from( select a.i_id as idSekolah,a.i_npsn as npsn, a.n_sekolah_pendek as namaSekolah, a.a_sekolah as alamatSekolah
+from trsekolah a, trbkuspengguna b
+where a.i_id = b.i_idsekolah
+and b.i_peg_nrk = #{idpengguna})
+    </select>
+    
+    <insert id="insertPASekolah" parameterType="java.util.Map">
+        insert into TRBKUSPENGGUNASEKOLAH (I_IDPENGGUNA, I_IDSEKOLAH,C_AKTIF,I_PGUN_REKAM,D_PGUN_REKAM)
+        VALUES(#{idpa},#{idsekolah},'1',#{pengguna},sysdate)
+    </insert>
+     <update id="nonAktifPa" parameterType="java.util.Map">
+         update trbkuspengguna
+         set c_aktif = 0
+         where i_idsekolah = #{idsekolah}
+         and c_pgun_otor = 1
+     </update>
+     
+     <delete id="nonAktifPaPlt" parameterType="java.util.Map">
+         delete trbkuspenggunasekolah
+         
+         where i_idsekolah = #{idsekolah}
+         and i_idpengguna = #{idpengguna}
+     </delete>
+  <!--   <insert id="insertUser" parameterType="ebkus.model.User">
+        INSERT INTO TRBKUSPENGGUNA (
+        I_ID
+        ,C_PGUN_GROUP
+        ,C_PGUN_OTOR
+        ,I_PEG_NRK
+        ,I_SANDI
+        ,I_IP_ADDRESS
+        ,I_IDSEKOLAH
+        ,N_EMAIL
+        ,N_HPNO
+        ,C_HPNO_AKTIF
+        ,I_PEG_NIP
+        ,N_PEG
+        ,N_PEG_JABATAN 
+        ,C_AKTIF  
+        ,I_IDSKPD    
+        ,I_PGUN_REKAM
+        ,D_PGUN_REKAM
+        )
+        VALUES (
+        #{idPengguna}
+        ,#{kodeGroup}
+        ,#{kodeOtoritas}
+        ,#{idNrk}
+        ,crypto16.ENCRYPT(#{idSandi}) 
+        ,#{ipAddress}
+        ,#{idSekolah}
+        ,#{namaEmail}
+        ,#{noHp}
+        ,0
+        ,#{nipPengguna}
+        ,#{namaPengguna}
+        ,#{jabatanPengguna}
+        ,#{kodeAktif} 
+        ,#{idSkpd}        
+        ,#{idEntry}
+        ,SYSDATE
+        ) 
+    </insert>
+    <select id="getPenggunaById"  parameterType="java.lang.Integer" resultType="ebkus.model.User" > 
+  SELECT I_ID AS idPengguna, c_pgun_group as kodeGroup, c_pgun_otor as kodeOtoritas, i_peg_nrk as idNrk, trim(crypto16.DECRYPT (I_SANDI)) as idSandi,
+        i_ip_address as ipAddress,i_idsekolah as idSekolah,n_email as namaEmail,n_hpno as noHp, c_hpno_aktif as kodeHpaktif,i_peg_nip as nipPengguna,n_peg as namaPengguna,
+        n_peg_jabatan as jabatanPengguna,c_aktif as kodeAktif,i_idskpd as idSkpd
+        
+        FROM TRBKUSPENGGUNA
+        where i_id = #{id}
+    </select>
+    <update id="updateUser" parameterType="ebkus.model.User"    >
+        UPDATE TRBKUSPENGGUNA
+        SET C_PGUN_GROUP = #{kodeGroup}
+        ,C_PGUN_OTOR = #{kodeOtoritas}
+        ,I_PEG_NRK = #{idNrk}
+        ,I_SANDI = crypto16.ENCRYPT(#{idSandi}) 
+        ,I_IP_ADDRESS = #{ipAddress}
+        ,I_IDSEKOLAH =#{idSekolah}
+        ,N_EMAIL = #{namaEmail}
+        ,N_HPNO = #{noHp}
+        ,C_HPNO_AKTIF = 0
+        ,I_PEG_NIP =#{nipPengguna}
+        ,N_PEG = #{namaPengguna}
+        ,N_PEG_JABATAN  =#{jabatanPengguna}
+        ,C_AKTIF  =#{kodeAktif}
+        ,I_IDSKPD  =#{idSkpd}  
+        ,I_PGUN_UBAH = #{idEdit}
+        ,D_PGUN_UBAH = SYSDATE
+        
+       
+        WHERE I_ID = #{idPengguna}
+    </update>
+     
+     <delete id="deleteUser" parameterType="ebkus.model.User" >
+        DELETE FROM TRBKUSPENGGUNA WHERE I_ID = #{idPengguna}
+    </delete>-->
+    <!--insert id="insertUserSkpd" parameterType="adm.model.User"   >
+        INSERT INTO TMPENGGUNASKPD (
+        I_IDPENGGUNA
+        ,I_IDSKPD
+        ,C_AKTIF
+        ,I_PGUN_REKAM
+        ,D_PGUN_REKAM
+        )
+        VALUES (
+        #{id}, <choose>
+            <when test="idSkpd != null ">
+                #{idSkpd}
+            </when>
+            <otherwise>
+                0
+            </otherwise>
+        </choose>
+        ,#{kodeAktif}
+        ,#{idEntry}
+        ,SYSDATE
+        )
+    </insert>
+    
+    <delete id="deleteUserSkpd" parameterType="adm.model.User" >
+        DELETE FROM TMPENGGUNASKPD WHERE I_IDPENGGUNA = #{id}
+    </delete>
+    <delete id="deleteUser" parameterType="adm.model.User" >
+        DELETE FROM TMPENGGUNA WHERE I_ID = #{id}
+    </delete>
+    <select id="getUserById" parameterType="java.lang.Integer"  resultType="adm.model.User">         
+        SELECT a.I_ID as id,
+        a.C_PGUN_GROUP as kodeGrup,
+        a.I_PGUN as userName,
+        a.I_SANDI as userPassword,
+        a.I_IDSKPD as idSkpd,
+        a.C_WIL_SP2DPROSES as kodeWilayahProses,
+        a.I_IDPNRMLOKET as idNomorLoket,
+        a.I_IP_ADDRESS as ipAddress,
+        a.N_EMAIL as userEmail,
+        a.I_NIP_PEG as userNipPeg,
+        a.I_NRK_PEG as userNrkPeg,
+        a.N_PEG as userNamaPeg,
+        a.C_AKTIF as kodeAktif,
+        S.C_SKPD as "skpd.kodeSkpd",
+        S.N_SKPD as "skpd.namaSkpd",
+        a.I_IDSKPD as "skpd.idSkpd"
+        FROM TMPENGGUNA a 
+        left join trskpd s on S.I_ID = A.I_IDSKPD        
+        where A.I_ID = #{id}
+    </select>-->
+</mapper>

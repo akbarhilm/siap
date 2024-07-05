@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.BatalTutupBkuBosMapper">
+
+    <select id="getBulanBKU" parameterType="java.util.Map"  resultType="ebkus.model.BukuKasUmum">
+        SELECT distinct kodeBulan , bulanPosting FROM (
+
+        SELECT  distinct to_char(sysdate,'MM') as kodeBulan, to_char(sysdate,'MM') || ' : ' || 'BELUM DIPROSES'  AS  bulanPosting from TIRKASBKU
+        where  to_char(sysdate,'MM') &lt;&gt; c_bln_posting and not exists
+        (select max(c_bln_posting) from TIRKASBKU WHERE C_ANGG_TAHUN = #{tahun} AND I_IDSEKOLAH = #{idsekolah})
+
+        UNION ALL
+        SELECT trim(to_char(max(c_bln_posting) + 1,'00'))  as kodeBulan , bulan(trim(to_char(max(c_bln_posting) + 1,'00'))) || ' : ' || 'BELUM DIPROSES'  AS  bulanPosting from TIRKASBKU
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+        and not exists (select 1 from TIRKASBKU A WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSEKOLAH = #{idsekolah} and A.c_bln_posting = '12')
+
+        having  max(c_bln_posting) is not null
+
+        UNION ALL
+
+        SELECT DISTINCT c_bln_posting as kodeBulan,  bulan(c_bln_posting) || ' : ' || TO_CHAR(D_BKU_PROSES, 'DD-MM-YYYY HH24:MM:SS')  AS bulanPosting
+        from TIRKASBKU
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+
+        and exists (select 1 from TMRKASBKU
+        where TIRKASBKU.c_angg_tahun = TMRKASBKU.c_angg_tahun
+        and TIRKASBKU.I_IDSEKOLAH = TMRKASBKU.I_IDSEKOLAH
+        and TMRKASBKU.I_IDSEKOLAH = #{idsekolah}
+        and TMRKASBKU.C_ANGG_TAHUN = #{tahun}
+
+        and TIRKASBKU.c_bln_posting  = SUBSTR(TMRKASBKU.D_POSTING,5,2)
+        and  C_STATUS ='1')
+
+        UNION ALL
+        SELECT distinct SUBSTR(D_POSTING,5,2) as kodeBulan, bulan(SUBSTR(D_POSTING,5,2)) || ' : ' || 'BELUM DIPROSES'  AS  bulanPosting
+        FROM TMRKASBKU A
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+
+        and C_STATUS ='0'
+        AND NOT EXISTS (SELECT 1 FROM TIRKASBKU B
+        WHERE A.C_ANGG_TAHUN = B.C_ANGG_TAHUN
+        AND  A.I_IDSEKOLAH = B.I_IDSEKOLAH
+        and b.I_IDSEKOLAH = #{idsekolah}
+        and b.C_ANGG_TAHUN = #{tahun}
+
+        AND SUBSTR(A.D_POSTING,5,2) = B.c_bln_posting)
+
+        UNION ALL
+        SELECT distinct SUBSTR(D_POSTING,5,2) as kodeBulan, bulan(SUBSTR(D_POSTING,5,2)) || ' : ' || 'DRAFT DIPROSES'  AS  bulanPosting
+        FROM TMRKASBKU A
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+
+        and C_STATUS ='0'
+        AND EXISTS (SELECT 1 FROM TIRKASBKU B
+        WHERE A.C_ANGG_TAHUN = B.C_ANGG_TAHUN
+        AND  A.I_IDSEKOLAH = B.I_IDSEKOLAH
+        and b.C_ANGG_TAHUN = #{tahun}
+        AND b.I_IDSEKOLAH = #{idsekolah}
+
+        AND SUBSTR(A.D_POSTING,5,2) = B.c_bln_posting)
+
+        UNION ALL
+        select distinct xx.C_BLN_TUTUP as kodeBulan, bulan(xx.C_BLN_TUTUP) || ' : ' || '(NIHIL) DRAFT DIPROSES'  AS  bulanPosting
+        from TMRKASBKUREKAP xx
+        left join TMRKASBKU yy
+        on xx.C_ANGG_TAHUN=yy.C_ANGG_TAHUN
+        and xx.I_IDSEKOLAH=yy.I_IDSEKOLAH
+        where xx.C_ANGG_TAHUN = #{tahun}
+        AND xx.I_IDSEKOLAH = #{idsekolah}
+
+        AND xx.c_bku_nihil=1
+        and xx.D_BKU_PROSES is null
+
+        UNION ALL
+        select distinct xx.C_BLN_TUTUP as kodeBulan, bulan(xx.C_BLN_TUTUP) || ' : ' || TO_CHAR(xx.D_BKU_PROSES, 'DD-MM-YYYY HH24:MM:SS') || ' (NIHIL)'  AS  bulanPosting
+        from TMRKASBKUREKAP xx
+        left join TMRKASBKU yy
+        on xx.C_ANGG_TAHUN=yy.C_ANGG_TAHUN
+        and xx.I_IDSEKOLAH=yy.I_IDSEKOLAH
+        where xx.C_ANGG_TAHUN = #{tahun}
+        AND xx.I_IDSEKOLAH = #{idsekolah}
+
+        AND xx.c_bku_nihil=1
+        and xx.D_BKU_PROSES is not null
+        )
+        ORDER BY 1
+    </select>
+
+    <select id="getTriwulanBKU" parameterType="java.util.Map"  resultType="ebkus.model.BukuKasUmum">
+        SELECT distinct triwulan , uraian FROM (
+        SELECT distinct X.c_angg_triwulan  as triwulan , 'TRIWULAN ' || X.c_angg_triwulan || ' : ' || TO_CHAR(X.D_BKU_TUTUP,'DD-MM-YYYY')  AS uraian
+        FROM TMBKUSBOS X
+        WHERE X.C_ANGG_TAHUN = #{tahun}
+        AND X.I_IDSEKOLAH = #{idsekolah}
+        AND X.C_BKU_TUTUP = '2'
+        AND X.D_BKU_TUTUP IS NOT NULL
+        AND EXISTS (SELECT 1 FROM TIBKUSBOSTW A WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSEKOLAH = #{idsekolah} and A.c_angg_triwulan = X.c_angg_triwulan)
+        AND EXISTS (SELECT 1 FROM TMBKUSBOSREKAP B WHERE B.C_ANGG_TAHUN = #{tahun}
+        AND B.I_IDSEKOLAH = #{idsekolah} and B.c_angg_triwulan = X.c_angg_triwulan)
+        )
+        ORDER BY 1
+    </select>
+
+    <select id="getBanyakListBku" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (*) as banyak from (
+        SELECT REPLACE(C_TGL_POSTING,'/','-') AS tglPosting, I_DOC_BUKTI as noBukti,
+        TRIM(REPLACE(REPLACE(REPLACE(E_DOC_BUKTI,CHR(13),' '),CHR(10),' '),CHR(9),' '))  as uraianBukti,
+        C_AKUN as kodeakun, DECODE(I_NOURUT,1,0,V_KAS_TERIMA) AS nilaiMasuk, V_KAS_KELUAR as nilaiKeluar, V_SALDO as saldoKas
+        FROM TIBKUSBOSTW
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+        AND C_ANGG_TRIWULAN = #{triwulan}
+        )
+    </select>
+
+    <select id="getListBku" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT tglPosting, noBukti, uraianBukti, kodeakun, nilaiMasuk, nilaiKeluar, saldoKas
+        FROM (SELECT   ROWNUM AS rn, a.*
+        FROM (
+        SELECT REPLACE(C_TGL_POSTING,'/','-') AS tglPosting, I_DOC_BUKTI as noBukti,
+        TRIM(REPLACE(REPLACE(REPLACE(E_DOC_BUKTI,CHR(13),' '),CHR(10),' '),CHR(9),' '))  as uraianBukti,
+        C_AKUN as kodeakun, DECODE(I_NOURUT,1,0,V_KAS_TERIMA) AS nilaiMasuk, V_KAS_KELUAR as nilaiKeluar, V_SALDO as saldoKas
+        FROM TIBKUSBOSTW
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+        AND C_ANGG_TRIWULAN = #{triwulan}
+
+        ORDER BY I_NOURUT
+        ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBendahara" parameterType="java.util.Map"  resultType="ebkus.model.BatalTutupBku">
+        select nvl(i_nip_pa,'-') as nipPA, nvl(i_nrk_pa,'-') as nrkPA, nvl(n_pa,'-') as namaPA, nvl(i_nip_pkblj,'-') as nipBendahara,
+        nvl(i_nrk_pkblj,'-') as nrkBendahara, nvl(n_pkblj,'-') as namaBendahara
+        from tmrkas where i_idsekolah = #{idsekolah} and c_angg_tahun = #{tahun}
+    </select>
+
+    <select id="getNilaiKas" parameterType="java.util.Map"  resultType="ebkus.model.BatalTutupBku">
+        select sum(kasTerimaLalu) as kasTerimaLalu, sum(kasKeluarLalu) as kasKeluarLalu, sum(kasTerima) as kasTerima, sum(kasKeluar) as kasKeluar, sum(kasSaatIni) as kasSaatIni from (
+
+        select 0 as kasTerimaLalu , 0 as kasKeluarLalu, 0 as kasTerima, 0 as kasKeluar, nvl((sum(B.v_kas_terima) - sum(B.v_kas_keluar)),0) as kasSaatIni
+        from TMBKUSBOS A, TMBKUSBOSRINCI B
+        where A.I_IDSEKOLAH = #{idsekolah} and A.c_angg_tahun = #{tahun}
+        AND A.I_ID = B.I_IDBKUBOS
+        AND A.I_BKUNO != 0
+        AND A.D_POSTING IS NOT NULL
+        and A.C_ANGG_TRIWULAN &lt;= #{triwulan}
+
+        union all
+        select 0 as kasTerimaLalu , 0 as kasKeluarLalu, nvl(sum(B.v_kas_terima),0) as kasTerima, nvl(sum(B.v_kas_keluar),0) as kasKeluar, 0 as kasSaatIni
+        from TMBKUSBOS A, TMBKUSBOSRINCI B
+        where A.I_IDSEKOLAH = #{idsekolah} and A.c_angg_tahun = #{tahun}
+        AND A.I_ID = B.I_IDBKUBOS
+        AND A.I_BKUNO != 0
+        AND A.D_POSTING IS NOT NULL
+        and A.C_ANGG_TRIWULAN = #{triwulan}
+
+        union all
+        select nvl(sum(B.v_kas_terima),0) as kasTerimaLalu , nvl(sum(B.v_kas_keluar),0) as kasKeluarLalu, 0 as kasTerima, 0 as kasKeluar, 0 as kasSaatIni
+        from TMBKUSBOS A, TMBKUSBOSRINCI B
+        where A.I_IDSEKOLAH = #{idsekolah} and A.c_angg_tahun = #{tahun}
+        AND A.I_ID = B.I_IDBKUBOS
+        AND A.I_BKUNO != 0
+        AND A.D_POSTING IS NOT NULL
+        and A.C_ANGG_TRIWULAN &lt; #{triwulan}
+
+        )
+    </select>
+
+    <select id="getNilaiSaldo" parameterType="java.util.Map"  resultType="ebkus.model.BatalTutupBku">
+        select sum(saldoTunai) as saldoTunai, sum(saldoBank) as saldoBank, sum(saldoLain) as saldoLain from(
+        select nvl(sum(b.v_kas_terima - b.v_kas_keluar),0) as saldoTunai, 0 as saldoBank, 0 as saldoLain
+        from TMBKUSBOS A, TMBKUSBOSRINCI B
+        where A.I_IDSEKOLAH = #{idsekolah} and A.c_angg_tahun = #{tahun}
+        AND A.I_ID = B.I_IDBKUBOS
+        <!-- AND A.C_BKU_TUTUP = '1' -->
+        AND A.I_BKUNO != 0
+        AND A.D_POSTING IS NOT NULL
+        and A.C_ANGG_TRIWULAN &lt;= #{triwulan}
+        and A.c_uangpersediaan = '1'
+
+        union all
+        select 0 as saldoTunai, nvl(sum(B.v_kas_terima - B.v_kas_keluar),0) as saldoBank, 0 as saldoLain
+        from TMBKUSBOS A, TMBKUSBOSRINCI B
+        where A.I_IDSEKOLAH = #{idsekolah} and A.c_angg_tahun = #{tahun}
+        AND A.I_ID = B.I_IDBKUBOS
+        <!-- AND A.C_BKU_TUTUP = '1' -->
+        AND A.I_BKUNO != 0
+        AND A.D_POSTING IS NOT NULL
+        and A.C_ANGG_TRIWULAN &lt;= #{triwulan}
+        and A.c_uangpersediaan = '2'
+
+        union all
+        select 0 as saldoTunai, 0 as saldoBank, nvl(sum(B.v_kas_terima - B.v_kas_keluar),0) as saldoLain
+        from TMBKUSBOS A, TMBKUSBOSRINCI B
+        where A.I_IDSEKOLAH = #{idsekolah} and A.c_angg_tahun = #{tahun}
+        AND A.I_ID = B.I_IDBKUBOS
+        <!-- AND A.C_BKU_TUTUP = '1' -->
+        AND A.I_BKUNO != 0
+        AND A.D_POSTING IS NOT NULL
+        and A.C_ANGG_TRIWULAN &lt;= #{triwulan}
+        and A.c_uangpersediaan = '3'
+        )
+    </select>
+
+    <select id="getBanyakDataBku" parameterType="ebkus.model.BatalTutupBku"  resultType="java.lang.Integer">
+        select count(i_id)
+        from TMBKUSBOS
+        where c_angg_tahun = #{tahun}
+        and I_IDSEKOLAH = #{idsekolah}
+        and c_angg_triwulan = #{triwulan}
+        AND C_BKU_TUTUP = '1'
+        AND I_BKUNO != 0
+        AND D_POSTING IS NOT NULL
+    </select>
+
+    <delete id="deleteTutupBku" parameterType="ebkus.model.BatalTutupBku"  >
+        DELETE TMBKUSBOSREKAP
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+        AND C_ANGG_TRIWULAN &gt;= #{triwulan}
+
+    </delete>
+
+    <delete id="deleteTutupBkuTI" parameterType="ebkus.model.BatalTutupBku"  >
+        DELETE tibkusbostw
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+        AND C_ANGG_TRIWULAN &gt;= #{triwulan}
+
+    </delete>
+
+    <insert id="insertTutupBku" parameterType="ebkus.model.BatalTutupBku" >
+        INSERT INTO TMBKUSBOSREKAP (
+        C_ANGG_TAHUN,
+        I_IDSEKOLAH,
+        C_ANGG_TRIWULAN,
+        I_NRK_PA,
+        I_NIP_PA,
+        N_PA,
+        I_NRK_PKBLJ,
+        I_NIP_PKBLJ,
+        N_PKBLJ,
+        V_KAS_TERIMALALU,
+        V_KAS_KELUARLALU,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        V_BKU_SALDO,
+        V_BKU_SALDOTUNAI,
+        V_BKU_SALDOBANK,
+        V_BKU_SALDOLAIN,
+        D_BKU_TUTUP,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        C_BKU_NIHIL
+        )VALUES(
+        #{tahun},
+        #{idsekolah},
+        #{triwulan},
+        #{nrkPA},
+        #{nipPA},
+        #{namaPA},
+        #{nrkBendahara},
+        #{nipBendahara},
+        #{namaBendahara},
+        #{kasTerimaLalu},
+        #{kasKeluarLalu},
+        #{kasTerima},
+        #{kasKeluar},
+        #{kasSaatIni},
+        #{saldoTunai},
+        #{saldoBank},
+        #{saldoLain},
+        case
+        when #{kdTombolTutupBuku} ='0'
+        then null
+        else
+        sysdate
+        end,
+        <!--if test="kdTombolTutupBuku == '0'">
+            null,
+        </if>
+        <if test="kdTombolTutupBuku == '1'">
+            sysdate,
+        </if-->
+        <!--#{bkuProses},-->
+        #{idEntry},
+        sysdate,
+        #{kodeNihil}
+        )
+    </insert>
+
+    <update id="updateBkuPengeluaran" parameterType="ebkus.model.BatalTutupBku"   >
+        UPDATE TMBKUSBOS
+        SET
+        C_BKU_TUTUP ='1',
+        D_BKU_TUTUP = ''
+        where c_angg_tahun = #{tahun}
+        and I_IDSEKOLAH = #{idsekolah}
+        and C_ANGG_TRIWULAN &gt;= #{triwulan}
+        and C_BKU_TUTUP &gt; 0
+    </update>
+
+    <insert id="insertBKUPengeluaran" parameterType="ebkus.model.BatalTutupBku" >
+        {CALL proc_bku_ins_tibkusbostw (#{tahun}, #{idsekolah}, #{triwulan}, #{kdTombolTutupBuku})}
+    </insert>
+
+    <select id="getBanyakListXlsBku" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (*) as banyak from (
+        SELECT I_NOURUT AS NO_URUT, C_TGL_POSTING AS TANGGAL_POSTING,
+        I_DOC_BUKTI AS NO_BUKTI, E_DOC_BUKTI AS KETERANGAN, C_AKUN AS KODE_AKUN, V_KAS_TERIMA AS TERIMA, V_KAS_KELUAR AS KELUAR,
+        V_SALDO AS SALDO
+        FROM TIBKUSBOSTW
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+        AND C_ANGG_TRIWULAN = #{triwulan}
+        ORDER BY I_NOURUT
+        )
+    </select>
+
+    <select id="getListXlsBku" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT *
+        FROM (SELECT   ROWNUM AS rn, a.*
+        FROM (
+        SELECT I_NOURUT AS NO_URUT, C_TGL_POSTING AS TANGGAL_POSTING,
+        I_DOC_BUKTI AS NO_BUKTI, E_DOC_BUKTI AS KETERANGAN, C_AKUN AS KODE_AKUN, V_KAS_TERIMA AS TERIMA, V_KAS_KELUAR AS KELUAR,
+        V_SALDO AS SALDO
+        FROM TIBKUSBOSTW
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSEKOLAH = #{idsekolah}
+        AND C_ANGG_TRIWULAN = #{triwulan}
+        ORDER BY I_NOURUT
+        ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+</mapper>

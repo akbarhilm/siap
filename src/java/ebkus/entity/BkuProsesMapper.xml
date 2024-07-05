@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.BkuProsesMapper">
+    
+    <select id="getListIndex" parameterType="java.util.Map"  resultType="ebkus.model.BkuProses">
+        
+        SELECT id, kodeSumbdana, triwulan, batasWaktu
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        select i_id as id, c_angg_sumbdana as kodeSumbdana, c_angg_triwulan as triwulan,
+        substr(c_batas_waktu,0,2) ||'-'|| bulan(substr(c_batas_waktu,4,2)) as batasWaktu
+        from trbkusproses
+        where i_idskpd = #{idskpd}
+        order by c_angg_triwulan
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getBanyakListIndex" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select i_id as id, c_angg_sumbdana as kodeSumbdana, 
+        c_angg_triwulan as triwulan, c_batas_waktu as batasWaktu
+        from trbkusproses
+        where i_idskpd = #{idskpd}
+        )
+    </select>
+    
+    <select id="getSkpd" parameterType="java.util.Map" resultType="ebkus.model.Skpd">
+        select c_skpd as kodeSkpd, n_skpd as namaSkpd
+        from trskpd where i_id = #{idskpd}
+    </select>
+    
+    <insert id="insertBatasWaktu" parameterType="ebkus.model.BkuProses"  >
+        INSERT INTO TRBKUSPROSES (
+        I_ID,
+        I_IDSKPD,
+        C_ANGG_SUMBDANA,
+        C_ANGG_TRIWULAN,
+        C_BATAS_WAKTU,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        #{id},
+        #{idskpd},
+        #{kodeSumbdana},
+        #{triwulan},
+        #{batasWaktu},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    
+    <update id="updateBatasWaktu" parameterType="ebkus.model.BkuProses"   >
+        UPDATE TRBKUSPROSES
+        SET
+        C_ANGG_SUMBDANA = #{kodeSumbdana},
+        C_ANGG_TRIWULAN = #{triwulan},
+        C_BATAS_WAKTU = #{batasWaktu},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{id}
+        AND I_IDSKPD = #{idskpd}
+    </update>
+    
+    <select id="getEdit" parameterType="java.util.Map" resultType="ebkus.model.BkuProses">
+        select i_id as id, C_ANGG_SUMBDANA as kodeSumbdana, C_ANGG_TRIWULAN as triwulan, 
+        C_BATAS_WAKTU as batasWaktu from trbkusproses where i_id = #{id}
+    </select>
+    
+</mapper>

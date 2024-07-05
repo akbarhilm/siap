@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.LoginMainTemplateMapper">
+
+    <insert id="setLoginStatus" parameterType="ebkus.model.Pengguna" >
+        INSERT INTO TMBKUSLOGIN (
+        I_PEG_NRK,
+        D_BKUS_LOGIN
+        )VALUES(
+        #{namaPengguna},
+        sysdate
+        )
+    </insert>
+    <select id="getLoginStatus" parameterType="ebkus.model.Pengguna"  resultType="java.lang.Integer">
+        select count(*) as jumlah
+        from TMBKUSLOGIN
+        where i_peg_nrk = #{namaPengguna}
+        and trunc(sysdate) = trunc(d_bkus_login)
+    </select>
+    <delete id="deleteLoginStatus" parameterType="ebkus.model.Pengguna"  >
+        delete TMBKUSLOGIN
+        where i_peg_nrk = #{namaPengguna}
+    </delete>
+    <update id="loginSuccess" parameterType="ebkus.model.Pengguna" >
+        update TRBKUSPENGGUNA
+        set D_PGUN_LASTLOGIN = sysdate,
+        Q_sandi_ERROR = 0
+        WHERE I_PEG_NRK = #{namaPengguna}
+    </update>
+    <update id="updateSalahPassword" parameterType="ebkus.model.Pengguna" >
+        update TRBKUSPENGGUNA
+        set Q_sandi_ERROR = nvl(Q_sandi_ERROR,0)  + 1
+        WHERE I_PEG_NRK = #{namaPengguna}
+    </update>
+
+    <update id="updateStatusLock" parameterType="ebkus.model.Pengguna" >
+        update TRBKUSPENGGUNA
+        set c_lock = '1'
+        WHERE I_PEG_NRK = #{namaPengguna}
+    </update>
+
+    <select id="getSisaHari" parameterType="ebkus.model.Pengguna"  resultType="java.lang.Integer">
+        select  nvl(to_date(d_sandi_expired, 'yyyymmdd') - trunc(sysdate), 0)   as sisahari
+        from TRBKUSPENGGUNA
+        where i_peg_nrk = #{namaPengguna}
+    </select>
+    <select id="loadUserByUsername" parameterType="java.util.Map"  resultType="ebkus.model.Pengguna">
+        SELECT A.I_PEG_NRK as namaPengguna,crypto16.DECRYPT(A.I_SANDI) as passPengguna, A.C_AKTIF as kodeAktif,
+        'ROLE_'||A.C_PGUN_GROUP as kodeGrup,A.I_IDSKPD as idSkpd FROM TRBKUSPENGGUNA A WHERE A.I_PEG_NRK = #{iPegNrk}
+        AND A.I_SANDI = crypto16.ENCRYPT(#{passwd})
+    </select>
+    <select id="loadUserOnlyByUsername" parameterType="java.util.Map"  resultType="ebkus.model.Pengguna">
+        SELECT A.I_PEG_NRK as namaPengguna,crypto16.DECRYPT(A.I_SANDI) as passPengguna, A.C_AKTIF as kodeAktif,
+        'ROLE_'||A.C_PGUN_GROUP as kodeGrup,A.I_IDSKPD as idSkpd, A.Q_SANDI_ERROR as countSalah, A.C_LOCK as kodeKunci FROM TRBKUSPENGGUNA A WHERE A.I_PEG_NRK = #{iPegNrk}
+    </select>
+
+    <select id="loadPenggunaByUsername" parameterType="java.lang.String"  resultType="ebkus.model.Pengguna">
+        SELECT  T.I_ID as idPengguna, T.I_PEG_NRK as namaPengguna, crypto16.DECRYPT(T.I_SANDI) as passPengguna, T.I_IP_ADDRESS as ipAddress,
+        T.C_AKTIF as kodeAktif, T.C_PGUN_GROUP as kodeGrup, T.C_PGUN_OTOR as kodeOtoritas ,
+        S.C_WIL as kodeProses,T.I_IDSKPD as idSkpd  FROM TRBKUSPENGGUNA T, TRSEKOLAH S  WHERE  T.I_IDSEKOLAH = S.I_ID AND  T.I_PEG_NRK = #{id}
+        AND T.I_IDSEKOLAH IS NOT NULL
+        UNION
+        SELECT  T.I_ID as idPengguna, T.I_PEG_NRK as namaPengguna, crypto16.DECRYPT(T.I_SANDI) as passPengguna, T.I_IP_ADDRESS as ipAddress,
+        T.C_AKTIF as kodeAktif, T.C_PGUN_GROUP as kodeGrup, T.C_PGUN_OTOR as kodeOtoritas, '' as kodeProses,T.I_IDSKPD as idSkpd FROM TRBKUSPENGGUNA T WHERE  T.I_PEG_NRK = #{id}
+        AND T.I_IDSEKOLAH IS NULL
+    </select>
+
+    <select id="getListModulDgnIdIndukSatu" parameterType="java.util.Map" resultType="ebkus.model.Modul" >
+        SELECT DISTINCT D.I_MODUL_NO, D.I_ID as id, D.N_MODUL as namaModul, D.N_MODUL_LINK as namaModulLink  FROM  TRBKUSMODUL A
+        LEFT JOIN TRBKUSPENGGUNAMODUL B ON A.I_ID = B.I_IDMODUL
+        LEFT JOIN  TRBKUSPENGGUNA C ON B.I_IDPENGGUNA = C.I_ID ,TRBKUSMODUL D WHERE C.I_PEG_NRK = #{iPegNrk}
+        AND C.I_SANDI = crypto16.ENCRYPT(#{passwd}) AND A.C_AKTIF = '1' AND B.C_AKTIF = '1' AND C.C_AKTIF = '1'
+        AND D.I_ID = A.I_IDINDUK AND D.C_DETAIL = '0'  AND D.I_IDINDUK = 1 ORDER BY D.I_MODUL_NO ASC
+    </select>
+
+    <select id="getListModulDgnIdIndukSatuByUsername" parameterType="java.lang.String" resultType="ebkus.model.Modul" >
+        SELECT DISTINCT D.I_MODUL_NO, D.I_ID  as id, D.N_MODUL as namaModul, D.N_MODUL_LINK as namaModulLink  FROM  TRBKUSMODUL A
+        LEFT JOIN TRBKUSPENGGUNAMODUL B ON A.I_ID = B.I_IDMODUL
+        LEFT JOIN  TRBKUSPENGGUNA C ON B.I_IDPENGGUNA = C.I_ID ,TRBKUSMODUL D
+        WHERE C.I_PEG_NRK = #{id} AND A.C_AKTIF = '1' AND B.C_AKTIF = '1' AND C.C_AKTIF = '1'
+        AND D.I_ID = A.I_IDINDUK AND D.C_DETAIL = '0'  AND D.I_IDINDUK = 1 ORDER BY D.I_MODUL_NO ASC
+    </select>
+
+    <select id="getBanyakListModulByIdInduk" parameterType="java.lang.Integer"  resultType="java.lang.Integer">
+        SELECT COUNT(1) FROM TRBKUSMODUL A WHERE A.I_IDINDUK = #{id}  AND A.C_AKTIF = '1'
+    </select>
+
+    <select id="getListModulByIdInduk" parameterType="java.util.Map" resultType="ebkus.model.Modul" >
+        SELECT C.I_MODUL_NO, C.I_ID as id,C.N_MODUL as namaModul,C.N_MODUL_LINK as namaModulLink FROM TRBKUSPENGGUNA A,TRBKUSPENGGUNAMODUL B, TRBKUSMODUL C
+        WHERE A.I_PEG_NRK = #{iPegNrk} AND B.I_IDPENGGUNA = A.I_ID AND C.I_ID = B.I_IDMODUL AND C.I_IDINDUK = #{idInduk}
+        AND A.C_AKTIF = '1' AND B.C_AKTIF = '1' AND C.C_AKTIF = '1'
+        UNION
+        SELECT DISTINCT D.I_MODUL_NO, D.I_ID as id,D.N_MODUL as namaModul,D.N_MODUL_LINK as namaModulLink FROM TRBKUSPENGGUNA A,TRBKUSPENGGUNAMODUL B, TRBKUSMODUL C, TRBKUSMODUL D
+        WHERE A.I_PEG_NRK = #{iPegNrk} AND B.I_IDPENGGUNA = A.I_ID AND C.I_ID = B.I_IDMODUL AND D.I_ID = C.I_IDINDUK
+        AND D.I_IDINDUK = #{idInduk} AND A.C_AKTIF = '1' AND B.C_AKTIF = '1' AND C.C_AKTIF = '1' AND D.C_AKTIF = '1'
+        UNION
+        SELECT DISTINCT E.I_MODUL_NO, E.I_ID as id,E.N_MODUL as namaModul,E.N_MODUL_LINK as namaModulLink FROM TRBKUSPENGGUNA A,TRBKUSPENGGUNAMODUL B, TRBKUSMODUL C,
+        TRBKUSMODUL D,TRBKUSMODUL E
+        WHERE A.I_PEG_NRK = #{iPegNrk} AND B.I_IDPENGGUNA = A.I_ID AND C.I_ID = B.I_IDMODUL AND D.I_ID = C.I_IDINDUK AND E.I_ID = D.I_IDINDUK
+        AND E.I_IDINDUK = #{idInduk} AND A.C_AKTIF = '1' AND B.C_AKTIF = '1' AND C.C_AKTIF = '1' AND D.C_AKTIF = '1' AND E.C_AKTIF = '1'
+        UNION
+        SELECT DISTINCT F.I_MODUL_NO, F.I_ID as id,F.N_MODUL as namaModul,F.N_MODUL_LINK as namaModulLink FROM TRBKUSPENGGUNA A,TRBKUSPENGGUNAMODUL B, TRBKUSMODUL C,
+        TRBKUSMODUL D,TRBKUSMODUL E, TRBKUSMODUL F
+        WHERE A.I_PEG_NRK = #{iPegNrk} AND B.I_IDPENGGUNA = A.I_ID AND C.I_ID = B.I_IDMODUL AND D.I_ID = C.I_IDINDUK AND E.I_ID = D.I_IDINDUK
+        AND F.I_ID = E.I_IDINDUK
+        AND F.I_IDINDUK = #{idInduk} AND A.C_AKTIF = '1' AND B.C_AKTIF = '1' AND C.C_AKTIF = '1' AND D.C_AKTIF = '1'  AND F.C_AKTIF = '1'
+        AND F.C_AKTIF = '1'
+        UNION
+        SELECT DISTINCT G.I_MODUL_NO, G.I_ID as id,G.N_MODUL as namaModul,G.N_MODUL_LINK as namaModulLink FROM TRBKUSPENGGUNA A,TRBKUSPENGGUNAMODUL B, TRBKUSMODUL C,
+        TRBKUSMODUL D,TRBKUSMODUL E, TRBKUSMODUL F, TRBKUSMODUL G
+        WHERE A.I_PEG_NRK = #{iPegNrk} AND B.I_IDPENGGUNA = A.I_ID AND C.I_ID = B.I_IDMODUL AND D.I_ID = C.I_IDINDUK AND E.I_ID = D.I_IDINDUK
+        AND F.I_ID = E.I_IDINDUK AND G.I_ID = F.I_IDINDUK
+        AND G.I_IDINDUK = #{idInduk} AND A.C_AKTIF = '1' AND B.C_AKTIF = '1' AND C.C_AKTIF = '1' AND D.C_AKTIF = '1'  AND F.C_AKTIF = '1'
+        AND F.C_AKTIF = '1' AND G.C_AKTIF = '1'
+        UNION
+        SELECT DISTINCT H.I_MODUL_NO, H.I_ID as id,H.N_MODUL as namaModul,H.N_MODUL_LINK as namaModulLink FROM TRBKUSPENGGUNA A,TRBKUSPENGGUNAMODUL B, TRBKUSMODUL C,
+        TRBKUSMODUL D,TRBKUSMODUL E, TRBKUSMODUL F, TRBKUSMODUL G, TRBKUSMODUL H
+        WHERE A.I_PEG_NRK = #{iPegNrk} AND B.I_IDPENGGUNA = A.I_ID AND C.I_ID = B.I_IDMODUL AND D.I_ID = C.I_IDINDUK AND E.I_ID = D.I_IDINDUK
+        AND F.I_ID = E.I_IDINDUK AND G.I_ID = F.I_IDINDUK AND H.I_ID = G.I_IDINDUK
+        AND H.I_IDINDUK = #{idInduk} AND A.C_AKTIF = '1' AND B.C_AKTIF = '1' AND C.C_AKTIF = '1' AND D.C_AKTIF = '1'  AND F.C_AKTIF = '1'
+        AND F.C_AKTIF = '1' AND G.C_AKTIF = '1' AND H.C_AKTIF = '1'
+        ORDER BY 1 ASC
+    </select>
+
+    <select id="getSekolah" parameterType="java.lang.String" resultType="ebkus.model.Sekolah" >
+        SELECT  S.I_ID as idSekolah, S.I_NPSN as npsn, S.I_IDSKPD as idSkpd, S.N_SEKOLAH as namaSekolah, S.N_SEKOLAH_PENDEK as namaSekolahPendek,
+        S.C_JENJANG as kodeJenjang, S.I_REK_BANKBOS as noBOS, S.I_REK_BANKBOP as noBOP, S.i_npwp as noNPWP FROM TRBKUSPENGGUNA T LEFT JOIN TRSEKOLAH S ON T.I_IDSEKOLAH = S.I_ID WHERE T.I_PEG_NRK = #{id}
+    </select>
+
+    <select id="getListSekolah" parameterType="java.lang.String" resultType="ebkus.model.Sekolah" >
+        SELECT  S.I_ID as idSekolah, S.I_NPSN as npsn, S.I_IDSKPD as idSkpd, S.N_SEKOLAH as namaSekolah, S.N_SEKOLAH_PENDEK as namaSekolahPendek,
+        S.C_JENJANG as kodeJenjang, S.I_REK_BANKBOS as noBOS, S.I_REK_BANKBOP as noBOP, S.i_npwp as noNPWP  FROM TRBKUSPENGGUNA T LEFT JOIN TRSEKOLAH S ON T.I_IDSEKOLAH = S.I_ID WHERE T.I_PEG_NRK = #{id}
+    </select>
+
+</mapper>

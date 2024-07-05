@@ -1,0 +1,4 @@
+http://soadki.jakarta.go.id/rest/gov/dki/bkuSekolah/ws/mutasi|sipkdprod|sipkdprod!!
+http://soadki.jakarta.go.id/rest/gov/dki/bkuSekolah/ws/bank|siapprod|siapprod
+http://10.1.94.68:8080/TERIMA/halamanterimadata/json/terimapostdata
+http://soadev.jakarta.go.id/rest/gov/dki/bkuSekolah/ws/bank

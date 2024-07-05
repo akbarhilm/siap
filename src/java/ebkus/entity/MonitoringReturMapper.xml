@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ebkus.entity.MonitoringReturMapper">
+
+    <select id="getReturBOP"   parameterType="java.util.Map" resultType="ebkus.model.Retur">
+        select a.i_id as idBkusBank, a.i_idbku as idBku, to_char(to_date(b.d_posting,'yyyymmdd'),'dd Month yyyy') as tglTrf, b.i_doc_bukti as noBukti, a.c_bank_tujuan as kodeBank,
+        a.i_rek_tujuan as rekeningTujuan, a.n_tujuan as namaTujuan, a.v_bku_kirimbank as nilaiSpj, a.e_msg_terimabank as ketBank
+        from tmbkusbank a, tmbkusbop b
+        where b.i_id = a.i_idbku
+        and a.c_bank_status = 9
+        and a.c_angg_sumbdana = #{tipe}
+        and a.c_angg_tahun = #{tahun}
+        and b.i_idsekolah =#{idsekolah}
+        and b.c_angg_triwulan= #{tw}
+
+        and not exists (select 1 from tmbkusbank c where a.I_idbku = c.I_idbku and c.c_angg_tahun = #{tahun}
+        and c.I_idsekolah = to_char(#{idsekolah}) and c.c_bank_status = 1)
+
+    </select>
+    <select id="getBanyakReturBOP"   parameterType="java.util.Map" resultType="java.lang.Integer">
+        select Count(*) as banyak from(
+        select a.i_id as idBkusBank, a.i_idbku as idBku, to_char(to_date(b.d_posting,'yyyymmdd'),'dd Month yyyy') as tglTrf, b.i_doc_bukti as noBukti, a.c_bank_tujuan as kodeBank,
+        a.i_rek_tujuan as rekeningTujuan, a.n_tujuan as namaTujuan, a.v_bku_kirimbank as nilaiSpj, a.e_msg_terimabank as ketBank
+        from tmbkusbank a, tmbkusbop b
+        where b.i_id = a.i_idbku
+        and a.c_bank_status = 9
+        and a.c_angg_sumbdana = #{tipe}
+        and a.c_angg_tahun = #{tahun}
+        and b.i_idsekolah =#{idsekolah}
+        and b.c_angg_triwulan= #{tw}
+
+        and not exists (select 1 from tmbkusbank c where a.I_idbku = c.I_idbku and c.c_angg_tahun = #{tahun}
+        and c.I_idsekolah = to_char(#{idsekolah}) and c.c_bank_status = 1)
+
+        )
+    </select>
+
+    <select id="getReturBOS"   parameterType="java.util.Map" resultType="ebkus.model.Retur">
+        select a.i_id as idBkusBank, a.i_idbku as idBku, to_char(to_date(b.d_posting,'yyyymmdd'),'dd Month yyyy') as tglTrf, b.i_doc_bukti as noBukti, a.c_bank_tujuan as kodeBank,
+        a.i_rek_tujuan as rekeningTujuan, a.n_tujuan as namaTujuan, a.v_bku_kirimbank as nilaiSpj, a.e_msg_terimabank as ketBank
+        from tmbkusbank a, tmbkusbos b
+        where b.i_id = a.i_idbku
+        and a.c_bank_status = 9
+        and a.c_angg_sumbdana = #{tipe}
+        and a.c_angg_tahun = #{tahun}
+        and b.i_idsekolah =#{idsekolah}
+        and b.c_angg_triwulan= #{tw}
+
+        and not exists (select 1 from tmbkusbank c where a.I_idbku = c.I_idbku and c.c_angg_tahun = #{tahun}
+        and c.I_idsekolah = to_char(#{idsekolah}) and c.c_bank_status = 1)
+
+    </select>
+    <select id="getBanyakReturBOS"   parameterType="java.util.Map" resultType="java.lang.Integer">
+        select Count(*) as banyak from(
+        select a.i_id as idBkusBank, a.i_idbku as idBku, to_char(to_date(b.d_posting,'yyyymmdd'),'dd Month yyyy') as tglTrf, b.i_doc_bukti as noBukti, a.c_bank_tujuan as kodeBank,
+        a.i_rek_tujuan as rekeningTujuan, a.n_tujuan as namaTujuan, a.v_bku_kirimbank as nilaiSpj, a.e_msg_terimabank as ketBank
+        from tmbkusbank a, tmbkusbos b
+        where b.i_id = a.i_idbku
+        and a.c_bank_status = 9
+        and a.c_angg_sumbdana = #{tipe}
+        and a.c_angg_tahun = #{tahun}
+        and b.i_idsekolah =#{idsekolah}
+        and b.c_angg_triwulan= #{tw}
+
+        and not exists (select 1 from tmbkusbank c where a.I_idbku = c.I_idbku and c.c_angg_tahun = #{tahun}
+        and c.I_idsekolah = to_char(#{idsekolah}) and c.c_bank_status = 1)
+
+        )
+    </select>
+
+</mapper>

@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.KoreksiNilaiSpjBosMapper">
+
+    <select id="getListTriwulanByRekap" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select nvl(c_angg_triwulan,0) as triwulan
+        from tmbkusbosrekap
+        where c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and d_bku_tutup is not null
+    </select>
+
+    <select id="getListIndex" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT idBku,noBkuMohon, tglDok, noBuktiDok, uraianBukti, nilaiSpj, kodeTglTutup
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        select A.i_id as idBku, i_bkuno_mohon as noBkuMohon, D_DOC_BA as tglDok, I_DOC_BA as noBuktiDok,
+        E_DOC_BA as uraianBukti, sum(B.v_kas_terima - B.v_kas_keluar) as nilaiSpj ,
+        case
+        when tmbkusbosrekap.d_bku_tutup is not null then '2'
+        else  '0'
+        end as kodeTglTutup
+        from tmbkusbosrinci B,  tmbkusbos A
+        left join tmbkusbosrekap on tmbkusbosrekap.i_idsekolah = A.i_idsekolah
+        and tmbkusbosrekap.c_angg_tahun = A.c_angg_tahun
+        and tmbkusbosrekap.c_angg_triwulan = A.c_angg_triwulankoreksi
+        where A.i_id = B.i_idbkubos
+        and c_trx = 'JJ'
+        and A.c_angg_tahun = #{tahun}
+        and A.i_idsekolah = #{idsekolah}
+        and A.c_angg_triwulan = #{triwulan}
+        and c_bku_koreksi = 2
+        group by i_bkuno_mohon, I_DOC_BA, D_DOC_BA, E_DOC_BA, A.i_id, tmbkusbosrekap.d_bku_tutup
+        ) a) WHERE  ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListIndex" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select A.i_id as idBku, i_bkuno_mohon as noBkuMohon, D_DOC_BA as tglDok, I_DOC_BA as noBuktiDok,
+        E_DOC_BA as uraianBukti, sum(B.v_kas_terima - B.v_kas_keluar) as nilaiSpj ,
+        case
+        when tmbkusbosrekap.d_bku_tutup is not null then '2'
+        else  '0'
+        end as kodeTglTutup
+        from tmbkusbosrinci B,  tmbkusbos A
+        left join tmbkusbosrekap on tmbkusbosrekap.i_idsekolah = A.i_idsekolah
+        and tmbkusbosrekap.c_angg_tahun = A.c_angg_tahun
+        and tmbkusbosrekap.c_angg_triwulan = A.c_angg_triwulankoreksi
+        where A.i_id = B.i_idbkubos
+        and c_trx = 'JJ'
+        and A.c_angg_tahun = #{tahun}
+        and A.i_idsekolah = #{idsekolah}
+        and A.c_angg_triwulan = #{triwulan}
+        and c_bku_koreksi = 2
+        group by i_bkuno_mohon, I_DOC_BA, D_DOC_BA, E_DOC_BA, A.i_id, tmbkusbosrekap.d_bku_tutup
+        )
+    </select>
+
+    <select id="getListSpj" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT idBku, noBkuMohon, tglDok, noBuktiDok, uraianBukti, nilaiSpj, idKegiatan, kodeKeg, namaKeg
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        select i_bkuno_mohon as noBkuMohon, D_DOC_BUKTI as tglDok , i_doc_bukti as noBuktiDok, i_idkegiatan as idKegiatan,
+        E_DOC_BUKTI as uraianBukti, sum(v_kas_keluar - v_kas_terima) as nilaiSpj,
+        A.c_kegiatan as kodeKeg, n_kegiatan as namaKeg, A.i_id as idBku
+        from tmbkusbos A , tmbkusbosrinci B, tmrkaskegiatan C
+        where A.i_id = B.i_idbkubos
+        and A.i_idkegiatan = C.i_id
+        and c_trx = 'JJ'
+        and A.c_angg_tahun = #{tahun}
+        and A.i_idsekolah = #{idsekolah}
+        and c_angg_triwulan = #{triwulan}
+        and d_posting is not null
+        and i_bkuno != 0
+        and c_bku_koreksi != 2
+        and c_bku_tutup = 2
+        and d_bku_tutup is not null
+        and not exists (select 1 from tmbkusbos where c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and i_bkuno_ref = A.i_bkuno_mohon
+        and c_trx = 'JJ'
+        )
+        <if test="nomohon != null and nomohon != '' ">
+            and i_bkuno_mohon like ''||#{nomohon}||'%'
+        </if>
+
+        <if test="nobukti != null and nobukti != '' ">
+            and upper(i_doc_bukti) like '%'||upper(#{nobukti})||'%'
+        </if>
+        group by i_bkuno_mohon, D_DOC_BUKTI , i_doc_bukti, E_DOC_BUKTI, i_idkegiatan, A.c_kegiatan, n_kegiatan, A.i_id
+        ) a) WHERE  ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListSpj" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select i_bkuno_mohon as noBkuMohon, D_DOC_BUKTI as tglDok , i_doc_bukti as noBuktiDok,
+        E_DOC_BUKTI as uraianBukti, sum(v_kas_keluar - v_kas_terima) as nilaiSpj
+        from tmbkusbos A , tmbkusbosrinci B
+        where A.i_id = B.i_idbkubos
+        and c_trx = 'JJ'
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and c_angg_triwulan = #{triwulan}
+        and d_posting is not null
+        and i_bkuno != 0
+        and c_bku_koreksi != 2
+        and c_bku_tutup = 2
+        and d_bku_tutup is not null
+        and not exists (select 1 from tmbkusbos where c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and i_bkuno_ref = A.i_bkuno_mohon
+        and c_trx = 'JJ'
+        )
+        <if test="nomohon != null and nomohon != '' ">
+            and i_bkuno_mohon like ''||#{nomohon}||'%'
+        </if>
+
+        <if test="nobukti != null and nobukti != '' ">
+            and upper(i_doc_bukti) like '%'||upper(#{nobukti})||'%'
+        </if>
+        group by i_bkuno_mohon, D_DOC_BUKTI , i_doc_bukti, E_DOC_BUKTI
+        )
+    </select>
+
+    <select id="getDataSekolah" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select i_id as "sekolah.idSekolah", i_npsn as "sekolah.npsn",
+        n_sekolah_pendek as "sekolah.namaSekolahPendek"
+        from trsekolah where i_id = #{idsekolah}
+
+    </select>
+
+
+    <select id="getListSpjKoreksi" parameterType="java.util.Map" resultType="ebkus.model.BkuRinci">
+        SELECT idBku,idBas, idKomponen, idBlRinci, noUrut, nvl(namaSubKegiatan,'') as namaSubKegiatan,
+        nvl(keteranganRinci,'') as keteranganRinci, kodeKomponen, namaKomponen, komponenPajak,
+        hargaSatuan, kodeakun, namaakun, nilaiBkuInput, nvl(spekKomponen,'-') as spekKomponen, nilaiAnggaran
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        select sum(idBku) as idBku,idBas, idKomponen, idBlRinci, noUrut, namaSubKegiatan, keteranganRinci,
+        c_komponen as kodeKomponen, n_komponen as namaKomponen, n_komponen_spek as spekKomponen,
+        komponenPajak, hargaSatuan, c_akun as kodeakun, n_akun as namaakun,
+        nvl(sum(nilaiBkuInput),0) as nilaiBkuInput, nvl(sum(nilaiAnggaran),0) as nilaiAnggaran
+        from (
+        select 0 as idBku, i_idbas as idBas, i_idkomponen as idKomponen, i_idblrinci as idBlRinci, i_angg_nourut as noUrut,
+        n_kegiatan_sub as namaSubKegiatan, e_angg_rinci as keteranganRinci,
+        q_komponen_pajak as komponenPajak, v_komponen_harga as hargaSatuan,
+        (v_kas_keluar-v_kas_terima) as nilaiAnggaran, 0 as nilaiBkuInput
+        from tmbkusbos, tmbkusbosrinci
+        where tmbkusbos.i_id =  tmbkusbosrinci.i_idbkubos
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and i_idkegiatan = #{idkegiatan}
+        and i_bkuno_mohon = #{nomohonref}
+        and v_kas_keluar > 0
+
+        union all
+        select tmbkusbosrinci.i_id as idBku, i_idbas as idBas, i_idkomponen as idKomponen, i_idblrinci as idBlRinci, i_angg_nourut as noUrut,
+        n_kegiatan_sub as namaSubKegiatan, e_angg_rinci as keteranganRinci,
+        q_komponen_pajak as komponenPajak, v_komponen_harga as hargaSatuan,
+        0 as nilaiAnggaran, (v_kas_terima-v_kas_keluar) as nilaiBkuInput
+        from tmbkusbos, tmbkusbosrinci
+        where tmbkusbos.i_id =  tmbkusbosrinci.i_idbkubos
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and i_idkegiatan = #{idkegiatan}
+        and i_bkuno_mohon = #{nomohon}
+        and v_kas_terima > 0
+
+        ) xxx, trbas, trkategorikomponen
+        where trbas.i_id = xxx.idBas
+        and trkategorikomponen.i_id = xxx.idKomponen
+        group by idBas, idKomponen, idBlRinci, noUrut, namaSubKegiatan, keteranganRinci,
+        komponenPajak,  hargaSatuan, c_akun, n_akun, c_komponen, n_komponen, n_komponen_spek
+        order by upper(n_komponen), noUrut
+        ) a) WHERE  ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListSpjKoreksi" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select sum(idBku) as idBku,idBas, idKomponen, idBlRinci, noUrut, namaSubKegiatan, keteranganRinci,
+        c_komponen as kodeKomponen, n_komponen as namaKomponen, n_komponen_spek as spekKomponen,
+        komponenPajak, hargaSatuan, c_akun as kodeakun, n_akun as namaakun,
+        nvl(sum(nilaiBkuInput),0) as nilaiBkuInput, nvl(sum(nilaiAnggaran),0) as nilaiAnggaran
+        from (
+        select 0 as idBku, i_idbas as idBas, i_idkomponen as idKomponen, i_idblrinci as idBlRinci, i_angg_nourut as noUrut,
+        n_kegiatan_sub as namaSubKegiatan, e_angg_rinci as keteranganRinci,
+        q_komponen_pajak as komponenPajak, v_komponen_harga as hargaSatuan,
+        (v_kas_keluar-v_kas_terima) as nilaiAnggaran, 0 as nilaiBkuInput
+        from tmbkusbos, tmbkusbosrinci
+        where tmbkusbos.i_id =  tmbkusbosrinci.i_idbkubos
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and i_idkegiatan = #{idkegiatan}
+        and i_bkuno_mohon = #{nomohonref}
+        and v_kas_keluar > 0
+
+        union all
+        select tmbkusbosrinci.i_id as idBku, i_idbas as idBas, i_idkomponen as idKomponen, i_idblrinci as idBlRinci, i_angg_nourut as noUrut,
+        n_kegiatan_sub as namaSubKegiatan, e_angg_rinci as keteranganRinci,
+        q_komponen_pajak as komponenPajak, v_komponen_harga as hargaSatuan,
+        0 as nilaiAnggaran, (v_kas_terima-v_kas_keluar) as nilaiBkuInput
+        from tmbkusbos, tmbkusbosrinci
+        where tmbkusbos.i_id =  tmbkusbosrinci.i_idbkubos
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and i_idkegiatan = #{idkegiatan}
+        and i_bkuno_mohon = #{nomohon}
+        and v_kas_terima > 0
+
+        ) xxx, trbas, trkategorikomponen
+        where trbas.i_id = xxx.idBas
+        and trkategorikomponen.i_id = xxx.idKomponen
+        group by idBas, idKomponen, idBlRinci, noUrut, namaSubKegiatan, keteranganRinci,
+        komponenPajak,  hargaSatuan, c_akun, n_akun, c_komponen, n_komponen, n_komponen_spek
+        order by upper(n_komponen), noUrut
+        )
+    </select>
+
+    <insert id="insertBkuSpjMaster" parameterType="ebkus.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="id" >
+        INSERT INTO TMBKUSbos (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSEKOLAH,
+        I_BKUNO_MOHON,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        D_POSTING,
+        E_DOC_BUKTI,
+        I_PPTK_NRK,
+        I_DOC_BA,
+        D_DOC_BA,
+        E_DOC_BA,
+        I_NRK_BA,
+        N_PPTK,
+        I_PPTK_NIP,
+        C_JENIS,
+        C_BEBAN,
+        E_RMKS,
+        C_UANGPERSEDIAAN,
+        C_BKU_KOREKSI,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        C_ANGG_TRIWULAN,
+        C_BKU_STATUS,
+        I_BKUNO_REF,
+        C_BKU_TUTUP,
+        D_BKU_TUTUP,
+        I_BKUNO,
+        C_ANGG_TRIWULANKOREKSI,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        #{id},
+        #{tahun},
+        #{idsekolah},
+        #{noBkuMohon},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        #{tglPosting},
+        #{uraianBukti},
+        #{nrkPptk},
+        #{noDok},
+        #{tglDok},
+        #{uraianBukti},
+        #{nrkPptk},
+        #{namaPptk},
+        #{nipPptk},
+        3,
+        'TU',
+        #{uraian},
+        2,
+        2,
+        #{idKegiatan},
+        #{kodeKeg},
+        #{triwulan},
+        3,
+        #{noBkuRef},
+        2,
+        (SELECT D_BKU_TUTUP FROM TMBKUSbosREKAP WHERE C_ANGG_TAHUN = #{tahun} AND I_IDSEKOLAH = #{idsekolah} AND C_ANGG_TRIWULAN = #{triwulan}),
+        #{noBKU},
+        #{triwulanKoreksi},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <insert id="insertBkuSpjRinci" parameterType="ebkus.model.BkuRinci" >
+        INSERT INTO TMBKUSbosRINCI (
+        I_ID,
+        I_IDBKUbos,
+        V_KAS_TERIMA,
+        I_IDBAS,
+        C_AKUN,
+        I_IDKOMPONEN,
+        I_IDBLRINCI,
+        I_ANGG_NOURUT,
+        N_KEGIATAN_SUB,
+        E_ANGG_RINCI,
+        Q_KOMPONEN_PAJAK,
+        Q_KOMPONEN_VOLUME,
+        V_KOMPONEN_HARGA,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        #{id},
+        #{idBku},
+        #{nilaiMasuk},
+        #{idBas},
+        #{kodeakun},
+        #{idKomponen},
+        #{idBlRinci},
+        #{noUrut},
+        #{namaSubKegiatan},
+        #{keteranganRinci},
+        #{komponenPajak},
+        #{volume},
+        #{hargaSatuan},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+
+    <select id="getDataSpj" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select i_bkuno_mohon as noBkuMohon, D_DOC_BUKTI as tglDok , i_doc_bukti as noBuktiDok,
+        E_DOC_BUKTI as uraianBukti, sum(v_kas_keluar - v_kas_terima) as nilaiSpj
+        from tmbkusbos A , tmbkusbosrinci B
+        where A.i_id = B.i_idbkubos
+        and c_trx = 'JJ'
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and c_angg_triwulan = #{triwulan}
+        and d_posting is not null
+        and i_bkuno != 0
+        and c_bku_koreksi = 0
+        and c_bku_tutup != 2
+        and d_bku_tutup is null
+        and not exists (select 1 from tmbkusbos where c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and c_angg_triwulan = #{triwulan}
+        and i_bkuno_ref = A.i_bkuno_mohon
+        ) group by i_bkuno_mohon, D_DOC_BUKTI , i_doc_bukti, E_DOC_BUKTI
+
+    </select>
+
+
+    <select id="getDataEdit" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select tmbkusbos.i_id as idBku, I_BKUNO_MOHON as noBkuMohon, c_trx as kodeTransaksi,
+        I_DOC_BA as noBukti, D_DOC_BA as tglDok, E_DOC_BA as uraianBukti, I_NRK_BA as nrkPptk,
+        i_idkegiatan as idKegiatan, tmbkusbos.c_kegiatan as kodeKeg, N_PPTK as nipPptk, I_PPTK_NIP as namaPptk,
+        tmbkusbos.c_kegiatan ||'/'|| n_kegiatan as ketKegiatan,
+        tmbkusbos.i_idsekolah as "sekolah.idSekolah", i_npsn as "sekolah.npsn",
+        n_sekolah_pendek as "sekolah.namaSekolahPendek", sum(v_kas_terima-v_kas_keluar) as nilaiSpj,
+        c_angg_triwulan as triwulan,  c_angg_triwulankoreksi as triwulanKoreksi, i_bkuno_ref as noBkuRef,
+        substr(d_posting,7,2)  ||'/'||substr(d_posting,5,2)  ||'/'||substr(d_posting,0,4) as tglPosting
+        from tmbkusbos, tmbkusbosrinci, trsekolah, tmrkaskegiatan
+        where tmbkusbos.i_id = tmbkusbosrinci.i_idbkubos
+        and tmbkusbos.i_idsekolah = trsekolah.i_id
+        and tmbkusbos.i_idkegiatan = tmrkaskegiatan.i_id
+        and tmbkusbos.i_id = #{idbku}
+        and tmbkusbos.c_angg_tahun = #{tahun}
+        group by  tmbkusbos.i_id, I_BKUNO_MOHON, I_DOC_BA, D_DOC_BA, E_DOC_BA, I_NRK_BA, d_posting,
+        i_idkegiatan, tmbkusbos.c_kegiatan, n_kegiatan, c_trx, tmbkusbos.c_kegiatan || ''|| n_kegiatan,
+        tmbkusbos.i_idsekolah, i_npsn, n_sekolah_pendek, c_angg_triwulan, c_angg_triwulankoreksi, i_bkuno_ref,
+        N_PPTK , I_PPTK_NIP
+
+    </select>
+
+    <update id="updateSpjMasterById" parameterType="ebkus.model.BukuKasUmum"   >
+        UPDATE TMBKUSbos
+        SET
+        I_DOC_BA = #{noDok},
+        D_DOC_BA = #{tglDok},
+        D_POSTING = #{tglPosting},
+        E_DOC_BA = #{uraianBukti},
+        I_NRK_BA = #{nrkPptk},
+        N_PPTK = #{namaPptk},
+        I_PPTK_NIP = #{nipPptk},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        E_DOC_BUKTI = #{uraianBukti}
+        WHERE I_ID = #{idBku}
+        AND C_ANGG_TAHUN = #{tahun}
+
+    </update>
+
+    <update id="updateSpjRinciById" parameterType="ebkus.model.BkuRinci"   >
+        UPDATE TMBKUSbosRINCI
+        SET
+        V_KAS_TERIMA = #{nilaiMasuk},
+        I_IDBAS = #{idBas},
+        C_AKUN = #{kodeakun},
+        I_IDKOMPONEN = #{idKomponen},
+        I_IDBLRINCI = #{idBlRinci},
+        I_ANGG_NOURUT = #{noUrut},
+        N_KEGIATAN_SUB = #{namaSubKegiatan},
+        E_ANGG_RINCI = #{keteranganRinci},
+        Q_KOMPONEN_PAJAK = #{komponenPajak},
+        Q_KOMPONEN_VOLUME = #{volume},
+        V_KOMPONEN_HARGA = #{hargaSatuan},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{idBkuRinci}
+
+    </update>
+
+    <select id="getPaguEdit" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select sum(v_kas_keluar-v_kas_terima) as nilaiSpj
+        from tmbkusbos, tmbkusbosrinci
+        where tmbkusbos.i_id = tmbkusbosrinci.i_idbkubos
+        and i_idsekolah = #{idsekolah}
+        and tmbkusbos.c_angg_tahun = #{tahun}
+        and i_bkuno_mohon = #{nomohon}
+
+    </select>
+
+</mapper>

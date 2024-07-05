@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.BaBatalMapper">
+
+    <select id="getBaBatal" parameterType="java.util.Map"  resultType="ebkus.model.BaBatal">
+        select I_ID as idBa, I_BANO as noBa, D_BANO as tanggal,
+        V_BA as nilai,
+        E_BA as uraian
+        from tmbkusbabatal
+        where i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and i_bkuno_mohon = #{nomohon}
+        and c_angg_sumbdana = #{kodesumbdana}
+
+    </select>
+    <select id="getFormattedNoBa" parameterType="ebkus.model.BaBatal"  resultType="java.lang.String">
+        select nvl(to_char(max(i_bano) + 1),1)
+        from tmbkusbabatal
+        where i_idsekolah = #{idSekolah}
+        and c_angg_tahun = #{tahun}
+        and c_angg_sumbdana = #{kodeSumbdana}
+    </select>
+
+
+    <insert id="insertBaBatal" parameterType="ebkus.model.BaBatal">
+        INSERT INTO TMBKUSBABATAL (
+        I_ID,
+        I_IDSEKOLAH,
+        I_BKUNO_MOHON,
+        I_BANO,
+        I_BANO_DOK,
+        C_ANGG_SUMBDANA,
+        C_ANGG_TAHUN,
+        C_ANGG_TRIWULAN,
+        D_BANO,
+        V_BA,
+        E_BA,
+        C_TRX,
+        C_AKTIF,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )
+        VALUES (
+        #{idBa},
+        #{idSekolah},
+        #{noBkuMohon},
+        #{noBa},
+        #{noBaDok},
+        #{kodeSumbdana},
+        #{tahun},
+        #{triwulan},
+        #{tanggal},
+        #{nilai},
+        #{uraian},
+        #{kodeTransaksi},
+        '1',
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    <update id="updateBaBatal" parameterType="ebkus.model.BaBatal"   >
+        UPDATE TMBKUSBABATAL
+        SET
+        I_BANO_DOK = #{noBaDok},
+        D_BANO = #{tanggal},
+        E_BA = #{uraian},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{idBa}
+    </update>
+    <delete id="deleteBaBatal" parameterType="ebkus.model.BaBatal"  >
+        DELETE TMBKUSBABATAL WHERE  I_ID = #{idBa}
+    </delete>
+    <delete id="deleteBaBatalByMohon" parameterType="java.util.Map"  >
+        delete tmbkusbabatal
+        where i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and c_angg_triwulan = #{triwulan}
+        and i_bkuno_mohon = #{nomohon}
+        and c_angg_sumbdana = #{sumbdana}
+    </delete>
+</mapper>

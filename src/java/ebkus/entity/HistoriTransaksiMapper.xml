@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.HistoriTransaksiMapper">
+    <select id="getTransaksi" parameterType="java.lang.String" resultType="ebkus.model.HistoriTransaksi">
+
+        SELECT
+        to_char(to_date(D_TGL_TRX,'yyyymmdd'),'dd MonthYYYY') tglTrx, nvl(D_JAM_TRX,'-') as jamTrx ,
+        E_TRX keterangan , decode(C_JURNAL, 'C',  V_TRX, 0) as terima , decode(C_JURNAL, 'D',  V_TRX, '0') keluar, d_pgun_rekam as generateTime
+        FROM TMBKUSWSTRXHISTORI
+        where I_REK_BANK = #{rekening}
+
+        order by  D_TGL_TRX,  D_JAM_TRX
+    </select>
+
+    <select id="getBanyakTransaksi" parameterType="java.lang.String" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak FROM( SELECT
+        D_TGL_TRX TRX_TANGGAL, nvl(D_JAM_TRX,'') as TRX_JAM,
+        E_TRX TRX_KETERANGAN , decode(C_JURNAL, 'C',  V_TRX, 0) as TERIMA , decode(C_JURNAL, 'D',  V_TRX, '0') KELUAR
+        FROM TMBKUSWSTRXHISTORI
+        where I_REK_BANK = #{rekening}
+
+        order by  D_TGL_TRX,  D_JAM_TRX)
+    </select>
+
+    <select id="getTransaksiall" parameterType="java.util.Map" resultType="ebkus.model.HistoriTransaksi">
+        SELECT    tglTrx,jamTrx, keterangan,terima, keluar,ketBku,namaTujuan
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT
+        to_char(to_date(D_TGL_TRX,'yyyymmdd'),'dd/MM/YYYY') tglTrx, nvl(D_JAM_TRX,'-') as jamTrx ,n_tujuan as namaTujuan,
+        E_TRX keterangan , decode(C_JURNAL, 'C',  V_TRX, 0) as terima , decode(C_JURNAL, 'D',  V_TRX, '0') keluar, e_bku as ketBku
+        FROM tmbkustrxhistoribank
+        where I_REK_BANK = #{rekening}
+
+        order by  D_TGL_TRX,  D_JAM_TRX
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakTransaksiall" parameterType="java.lang.String" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak FROM( SELECT
+        D_TGL_TRX TRX_TANGGAL, nvl(D_JAM_TRX,'') as TRX_JAM,
+        E_TRX TRX_KETERANGAN , decode(C_JURNAL, 'C',  V_TRX, 0) as TERIMA , decode(C_JURNAL, 'D',  V_TRX, '0') KELUAR
+        FROM tmbkustrxhistoribank
+        where I_REK_BANK = #{rekening}
+
+        order by  D_TGL_TRX,  D_JAM_TRX)
+    </select>
+
+    <select id="getSaldoAkhir" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT distinct i_npsn , n_sekolah,  E_MSG_TERIMABANK ,  V_TRX_SALDOAKHIR
+        FROM TMBKUSWSTRXHISTORI,  trsekolah
+        where I_REK_BANK = #{rekening}
+        <if test="tipe == 'BOP'">
+            and TMBKUSWSTRXHISTORI.I_REK_BANK =  trsekolah.I_REK_BANKBOP
+        </if>
+        <if test="tipe == 'BOS'">
+            and TMBKUSWSTRXHISTORI.I_REK_BANK =  trsekolah.I_REK_BANKBOS
+        </if>
+    </select>
+
+    <select id="getSaldoAkhirall" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM( SELECT * FROM tmbkustrxhistoribank WHERE I_REK_BANK = #{rekening} ORDER BY ROWNUM DESC )
+        WHERE   ROWNUM &lt;=1
+
+    </select>
+
+
+    <insert id="getMutasiAll" statementType="CALLABLE" parameterType="java.util.Map" >
+        {CALL proc_ins_TMBKUSTRXHISTORIBANK (#{account}, #{date})}
+    </insert>
+
+    <insert id="insertTransaksi" parameterType="ebkus.model.HistoriTransaksi"   >
+        INSERT
+        INTO TMBKUSWSTRXHISTORI (
+        I_REK_BANK,
+        D_TGL_TRX,
+        D_JAM_TRX,
+        E_TRX,
+        V_TRX,
+        V_TRX_SALDOAKHIR,
+        C_JURNAL,
+        E_MSG_TERIMABANK,
+        D_PGUN_REKAM
+        )VALUES(
+        #{rekening},
+        #{tglTrx},
+        #{jamTrx},
+        #{keterangan},
+        #{nilai},
+        #{saldo},
+        #{jurnal},
+        #{keteranganBank},
+        to_date(#{generateTime}, 'DD/MM/YYYY HH24:MI:SS')
+        )
+
+    </insert>
+    <delete id="deleteTransaksi" parameterType="java.lang.String"  >
+        DELETE TMBKUSWSTRXHISTORI WHERE  I_REK_BANK = #{account}
+    </delete>
+
+</mapper>

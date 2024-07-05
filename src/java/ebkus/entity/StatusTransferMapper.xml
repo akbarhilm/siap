@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.StatusTransferMapper">
+
+    <select id="getListSpjBop" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT idBku, noBkuMohon, noDok, tglDok, uraianBukti, kodeTransaksi,
+        nilaiSpjNetto, nilaiKeluar
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        select  tmbkusbop.i_id as idBku, i_bkuno_mohon as noBkuMohon, I_DOC_BUKTI as noDok, c_trx as kodeTransaksi,
+        D_DOC_BUKTI as tglDok, E_DOC_BUKTI as uraianBukti, sum(v_spj_netto) as nilaiSpjNetto,
+        sum(v_kas_keluar) as nilaiKeluar
+        from tmbkusbop,  tmbkusboprinci
+        where tmbkusbop.i_id =  tmbkusboprinci.i_idbkubop
+        and c_trx = #{kodetrans}
+        and d_posting is null
+        and c_bku_status = 3
+        and i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and c_angg_triwulan = #{triwulan}
+        and c_bku_koreksi != 2
+        <if test="nomohon != null and nomohon != '' ">
+            and i_bkuno_mohon = #{nomohon}
+        </if>
+        group by i_bkuno_mohon, I_DOC_BUKTI, D_DOC_BUKTI, E_DOC_BUKTI, tmbkusbop.i_id, c_trx
+        order by i_bkuno_mohon
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+
+    <select id="getBanyakListSpjBop" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT (*) AS banyak from (
+        select  tmbkusbop.i_id as idBku, i_bkuno_mohon as noBkuMohon, I_DOC_BUKTI as noDok, c_trx as kodeTransaksi,
+        D_DOC_BUKTI as tglDok, E_DOC_BUKTI as uraianBukti, sum(v_spj_netto) as nilaiSpjNetto,
+        sum(v_kas_keluar) as nilaiKeluar
+        from tmbkusbop,  tmbkusboprinci
+        where tmbkusbop.i_id =  tmbkusboprinci.i_idbkubop
+        and c_trx = #{kodetrans}
+        and d_posting is null
+        and c_bku_status = 3
+        and i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and c_angg_triwulan = #{triwulan}
+        and c_bku_koreksi != 2
+        <if test="nomohon != null and nomohon != '' ">
+            and i_bkuno_mohon = #{nomohon}
+        </if>
+        group by i_bkuno_mohon, I_DOC_BUKTI, D_DOC_BUKTI, E_DOC_BUKTI, tmbkusbop.i_id, c_trx
+        order by i_bkuno_mohon
+        )
+    </select>
+
+    <select id="getListSpjBos" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT idBku, noBkuMohon, noDok, tglDok, uraianBukti, kodeTransaksi,
+        nilaiSpjNetto, nilaiKeluar
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        select  tmbkusbos.i_id as idBku, i_bkuno_mohon as noBkuMohon, I_DOC_BUKTI as noDok, c_trx as kodeTransaksi,
+        D_DOC_BUKTI as tglDok, E_DOC_BUKTI as uraianBukti, sum(v_spj_netto) as nilaiSpjNetto,
+        sum(v_kas_keluar) as nilaiKeluar
+        from tmbkusbos,  tmbkusbosrinci
+        where tmbkusbos.i_id =  tmbkusbosrinci.i_idbkubos
+        and c_trx = #{kodetrans}
+        and d_posting is null
+        and c_bku_status = 3
+        and i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and c_angg_triwulan = #{triwulan}
+        and c_bku_koreksi != 2
+        <if test="nomohon != null and nomohon != '' ">
+            and i_bkuno_mohon = #{nomohon}
+        </if>
+        group by i_bkuno_mohon, I_DOC_BUKTI, D_DOC_BUKTI, E_DOC_BUKTI, tmbkusbos.i_id, c_trx
+        order by i_bkuno_mohon
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getBanyakListSpjBos" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT (*) AS banyak from (
+        select  tmbkusbos.i_id as idBku, i_bkuno_mohon as noBkuMohon, I_DOC_BUKTI as noDok, c_trx as kodeTransaksi,
+        D_DOC_BUKTI as tglDok, E_DOC_BUKTI as uraianBukti, sum(v_spj_netto) as nilaiSpjNetto,
+        sum(v_kas_keluar) as nilaiKeluar
+        from tmbkusbos,  tmbkusbosrinci
+        where tmbkusbos.i_id =  tmbkusbosrinci.i_idbkubos
+        and c_trx = #{kodetrans}
+        and d_posting is null
+        and c_bku_status = 3
+        and i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and c_angg_triwulan = #{triwulan}
+        and c_bku_koreksi != 2
+        <if test="nomohon != null and nomohon != '' ">
+            and i_bkuno_mohon = #{nomohon}
+        </if>
+        group by i_bkuno_mohon, I_DOC_BUKTI, D_DOC_BUKTI, E_DOC_BUKTI, tmbkusbos.i_id, c_trx
+        order by i_bkuno_mohon
+        )
+    </select>
+
+    <select id="getListBank" parameterType="java.util.Map" resultType="ebkus.model.BkuTransfer">
+        SELECT id, tglProses, nilaiTransfer, msgTerimaBank, statusBank, bit11
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        select i_id as id, D_BKU_KIRIMBANK as tglProses, V_BKU_KIRIMBANK as nilaiTransfer,
+        E_MSG_TERIMABANK as msgTerimaBank, C_BANK_STATUS as statusBank, I_BIT11 as bit11
+        from tmbkusbank
+        where c_angg_tahun = #{tahun}
+        and i_idbku = #{idbku}
+        <if test="kodesumb == 'BOS'">
+            and c_angg_sumbdana = 1
+        </if>
+        <if test="kodesumb == 'BOP'">
+            and c_angg_sumbdana = 2
+        </if>
+        <if test="berhasil != 0">
+            and c_bank_status = 1
+        </if>
+        order by c_bank_status
+        ) a) WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListBank" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT (*) AS banyak from (
+        select i_id as id, D_BKU_KIRIMBANK as tglProses, V_BKU_KIRIMBANK as nilaiTransfer,
+        E_MSG_TERIMABANK as msgTerimaBank, C_BANK_STATUS as statusBank, I_BIT11 as bit11
+        from tmbkusbank
+        where c_angg_tahun = #{tahun}
+        and i_idbku = #{idbku}
+        <if test="kodesumb == 'BOS'">
+            and c_angg_sumbdana = 1
+        </if>
+        <if test="kodesumb == 'BOP'">
+            and c_angg_sumbdana = 2
+        </if>
+        <if test="berhasil != 0">
+            and c_bank_status = 1
+        </if>
+        )
+    </select>
+
+    <update id="updateDataBank" parameterType="java.util.Map"   >
+        update tmbkusbank set
+        E_MSG_TERIMABANK = '00 - Transaksi BKUS Berhasil',
+        C_BANK_STATUS = 1,
+        V_BKU_BAYARBANK = V_BKU_KIRIMBANK,
+        D_BKU_PROSESBANK = D_BKU_KIRIMBANK
+        where i_idbku = #{idbku}
+        <if test="kodesumb == 'BOS'">
+            and c_angg_sumbdana = 1
+        </if>
+        <if test="kodesumb == 'BOP'">
+            and c_angg_sumbdana = 2
+        </if>
+        and i_id = #{id}
+
+    </update>
+
+    <insert id="updateDataBkuBop" parameterType="ebkus.model.BukuKasUmum" >
+        {CALL proc_upd_dpost_bop_nomohon (#{tahun}, #{idsekolah},#{noBkuMohon}) }
+    </insert>
+
+    <insert id="updateDataBkuBos" parameterType="ebkus.model.BukuKasUmum" >
+        {CALL proc_upd_dpost_bos_nomohon (#{tahun}, #{idsekolah},#{noBkuMohon}) }
+    </insert>
+
+    <select id="getBanyakBankBerhasil" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(c_bank_status)  as banyak from tmbkusbank
+        where c_angg_tahun = #{tahun}
+        and i_idbku = #{idbku}
+        and c_bank_status = 1
+        <if test="kodesumb == 'BOS'">
+            and c_angg_sumbdana = 1
+        </if>
+        <if test="kodesumb == 'BOP'">
+            and c_angg_sumbdana = 2
+        </if>
+    </select>
+</mapper>

@@ -1,0 +1,1054 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.StatusBopMapper">
+
+    <select id="getListBkuBop" parameterType="java.util.Map" resultType="ebkus.model.StatusBku">
+        SELECT rn AS no, id, tahun, triwulan, noMohon, status,
+        kodeKegiatan, namaKegiatan, kodeAkun, namaAkun, kodeKomponen, namaKomponen, kasKeluar
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT   b.i_id AS ID, b.c_angg_tahun AS tahun, c_bku_status AS status,
+        b.c_angg_triwulan AS triwulan, b.i_bkuno_mohon AS noMohon,
+        NVL (k.c_kegiatan, '-') AS kodeKegiatan,
+        NVL (k.n_kegiatan, '-') AS namaKegiatan, a.c_akun AS kodeAkun,
+        a.n_akun AS namaAkun, NVL (n.c_komponen, '-') AS kodeKomponen,
+        NVL (n.n_komponen, '') AS namaKomponen, r.v_kas_keluar AS kasKeluar
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = #{status}
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        <if test="kodeAkunFilter != null and kodeAkunFilter != '' ">
+            and upper(k.c_akun) like '%'||upper(#{kodeAkunFilter})||'%'
+        </if>
+        <if test="namaAkunFilter != null and namaAkunFilter != '' ">
+            and upper(k.n_akun) like '%'||upper(#{namaAkunFilter})||'%'
+        </if>
+        ORDER BY b.i_bkuno_mohon
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getListBopDari" parameterType="java.util.Map" resultType="ebkus.model.StatusBku">
+        SELECT rn AS no, id, tahun, triwulan, noMohon, status,
+        kodeKegiatan, namaKegiatan, kodeAkun, namaAkun, kodeKomponen, namaKomponen, kasKeluar
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT   b.i_id AS ID, b.c_angg_tahun AS tahun, c_bku_status AS status,
+        b.c_angg_triwulan AS triwulan, b.i_bkuno_mohon AS noMohon,
+        NVL (k.c_kegiatan, '-') AS kodeKegiatan,
+        NVL (k.n_kegiatan, '-') AS namaKegiatan, a.c_akun AS kodeAkun,
+        a.n_akun AS namaAkun, NVL (n.c_komponen, '-') AS kodeKomponen,
+        NVL (n.n_komponen, '') AS namaKomponen, r.v_kas_keluar AS kasKeluar
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND b.c_angg_triwulan = #{triwulan}
+        AND (c_bku_status = #{dari} OR c_bku_status = #{hingga})
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        <if test="kodeAkunFilter != null and kodeAkunFilter != '' ">
+            and upper(k.c_akun) like '%'||upper(#{kodeAkunFilter})||'%'
+        </if>
+        <if test="namaAkunFilter != null and namaAkunFilter != '' ">
+            and upper(k.n_akun) like '%'||upper(#{namaAkunFilter})||'%'
+        </if>
+        ORDER BY b.i_bkuno_mohon
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getListBopPajak" parameterType="java.util.Map" resultType="ebkus.model.StatusBku">
+        SELECT rn AS no, id, tahun, triwulan, noMohon, status,
+        kodeKegiatan, namaKegiatan, kodeAkun, namaAkun, kodeKomponen, namaKomponen, kasKeluar
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT   b.i_id AS ID, b.c_angg_tahun AS tahun, c_bku_status AS status,
+        b.c_angg_triwulan AS triwulan, b.i_bkuno_mohon AS noMohon,
+        NVL (k.c_kegiatan, '-') AS kodeKegiatan,
+        NVL (k.n_kegiatan, '-') AS namaKegiatan, a.c_akun AS kodeAkun,
+        a.n_akun AS namaAkun, NVL (n.c_komponen, '-') AS kodeKomponen,
+        NVL (n.n_komponen, '') AS namaKomponen, r.v_kas_keluar AS kasKeluar
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx LIKE 'P%'
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND (c_bku_status = #{dari} OR c_bku_status = #{hingga})
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        <if test="kodeAkunFilter != null and kodeAkunFilter != '' ">
+            and upper(k.c_akun) like '%'||upper(#{kodeAkunFilter})||'%'
+        </if>
+        <if test="namaAkunFilter != null and namaAkunFilter != '' ">
+            and upper(k.n_akun) like '%'||upper(#{namaAkunFilter})||'%'
+        </if>
+        ORDER BY b.i_bkuno_mohon
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getBanyakBopTotal" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT (*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT (*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx = #{kodeTrx}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '1'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT (*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '2'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT (*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '3'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+    </select>
+
+    <select id="getBanyakBopTotalPajak" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT (*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx LIKE 'P%'
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT (*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx LIKE 'P%'
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '1'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT (*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx LIKE 'P%'
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '2'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT (*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx LIKE 'P%'
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '3'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+    </select>
+
+    <select id="getStatusTutupSudin" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '1'
+        AND c_bku_tutup = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '2'
+        AND c_bku_tutup = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '3'
+        AND c_bku_tutup = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '4'
+        AND c_bku_tutup = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+    </select>
+
+    <select id="getStatusTutupBuku" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '1'
+        AND c_bku_tutup = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '2'
+        AND c_bku_tutup = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '3'
+        AND c_bku_tutup = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '4'
+        AND c_bku_tutup = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+    </select>
+
+    <select id="getStatusTutupBukuPajak" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx LIKE 'P%'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '1'
+        AND c_bku_tutup = '0'
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx LIKE 'P%'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '2'
+        AND c_bku_tutup = '0'
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx LIKE 'P%'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '3'
+        AND c_bku_tutup = '0'
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx LIKE 'P%'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = '4'
+        AND c_bku_tutup = '0'
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+    </select>
+
+    <select id="getBanyakBopDari" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND (c_bku_status = #{dari} OR c_bku_status =  #{hingga})
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        <if test="kodeAkunFilter != null and kodeAkunFilter != '' ">
+            and upper(k.c_akun) like '%'||upper(#{kodeAkunFilter})||'%'
+        </if>
+        <if test="namaAkunFilter != null and namaAkunFilter != '' ">
+            and upper(k.n_akun) like '%'||upper(#{namaAkunFilter})||'%'
+        </if>
+    </select>
+
+    <select id="getBanyakBopPajak" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx LIKE 'P%'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND (c_bku_status = #{dari} OR c_bku_status =  #{hingga})
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        <if test="kodeAkunFilter != null and kodeAkunFilter != '' ">
+            and upper(k.c_akun) like '%'||upper(#{kodeAkunFilter})||'%'
+        </if>
+        <if test="namaAkunFilter != null and namaAkunFilter != '' ">
+            and upper(k.n_akun) like '%'||upper(#{namaAkunFilter})||'%'
+        </if>
+    </select>
+
+    <select id="getBanyakBop" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = #{status}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        <if test="kodeAkunFilter != null and kodeAkunFilter != '' ">
+            and upper(k.c_akun) like '%'||upper(#{kodeAkunFilter})||'%'
+        </if>
+        <if test="namaAkunFilter != null and namaAkunFilter != '' ">
+            and upper(k.n_akun) like '%'||upper(#{namaAkunFilter})||'%'
+        </if>
+    </select>
+
+    <select id="getTotalAll" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT SUM (kaskeluar) AS total
+        FROM (SELECT r.v_kas_keluar AS kaskeluar
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '0')
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT SUM (kaskeluar) AS total
+        FROM (SELECT r.v_kas_keluar AS kaskeluar
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '1')
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT SUM (kaskeluar) AS total
+        FROM (SELECT r.v_kas_keluar AS kaskeluar
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '2')
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        UNION ALL
+        SELECT SUM (kaskeluar) AS total
+        FROM (SELECT r.v_kas_keluar AS kaskeluar
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = '3')
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+    </select>
+
+    <select id="getTotal" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT SUM(kasKeluar) AS total FROM (SELECT r.v_kas_keluar AS kasKeluar
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND c_bku_status = #{status}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        )
+    </select>
+
+    <select id="getTotalDari" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT SUM(kasKeluar) AS total FROM (SELECT r.v_kas_keluar AS kasKeluar
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND (c_bku_status = #{dari} OR c_bku_status = #{hingga})
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        )
+    </select>
+
+    <select id="getTotalPajak" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT SUM(kasKeluar) AS total FROM (SELECT r.v_kas_keluar AS kasKeluar
+        FROM tmbkusbop b INNER JOIN tmbkusboprinci r ON b.i_id = r.i_idbkubop
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN trkategorikomponen n ON r.i_idkomponen = n.i_id
+        LEFT JOIN trbas a ON r.i_idbas = a.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun} AND c_trx LIKE 'P%'
+        AND b.i_idsekolah = #{idSekolah}
+        AND b.c_angg_triwulan = #{triwulan}
+        AND r.v_kas_keluar &gt; '0'
+        AND b.c_bku_koreksi = '0'
+        AND b.i_bkuno = 0
+        AND d_posting IS NULL
+        AND (c_bku_status = #{dari} OR c_bku_status = #{hingga})
+        AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE b.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(b.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = b.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+        )
+    </select>
+
+    <update id="updateStatusBop" parameterType="java.util.Map"   >
+        UPDATE TMBKUSBOP
+        SET
+        c_bku_status = #{statusSesudah},
+        I_PGUN_UBAH = #{id},
+        D_PGUN_UBAH = #{tanggal}
+        WHERE c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND i_idsekolah = #{idSekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND c_bku_status = #{statusSebelum}
+        AND c_bku_koreksi = '0'
+        AND i_bkuno = 0
+        AND d_posting IS NULL
+        AND EXISTS (SELECT 1
+        FROM tmbkusboprinci
+        WHERE i_idbkubop = tmbkusbop.i_id
+        AND v_kas_keluar &gt; '0'
+        ) AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE TMBKUSBOP.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(TMBKUSBOP.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = TMBKUSBOP.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+
+
+    </update>
+    <update id="updateStatusBopByNoMohon" parameterType="java.util.Map"   >
+        UPDATE TMBKUSBOP
+        SET
+        c_bku_status = #{statusSesudah},
+        I_PGUN_UBAH = #{id},
+        D_PGUN_UBAH = #{tanggal}
+        WHERE c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND i_idsekolah = #{idSekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND c_bku_status = #{statusSebelum}
+        AND c_bku_koreksi = '0'
+        AND i_bkuno = 0
+        AND d_posting IS NULL
+        AND I_BKUNO_MOHON = #{noMohon}
+        AND EXISTS (SELECT 1
+        FROM tmbkusboprinci
+        WHERE i_idbkubop = tmbkusbop.i_id
+        AND v_kas_keluar &gt; '0'
+        ) AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE TMBKUSBOP.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(TMBKUSBOP.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = TMBKUSBOP.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+    </update>
+
+    <update id="updateStatusBopPajak" parameterType="java.util.Map"   >
+        UPDATE TMBKUSBOP
+        SET
+        c_bku_status = #{statusSesudah},
+        I_PGUN_UBAH = #{id},
+        D_PGUN_UBAH = #{tanggal}
+        WHERE c_angg_tahun = #{tahun} AND c_trx LIKE 'P%'
+        AND i_idsekolah = #{idSekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND c_bku_status = #{statusSebelum}
+        AND c_bku_koreksi = '0'
+        AND i_bkuno = 0
+        AND d_posting IS NULL
+        AND EXISTS (SELECT 1
+        FROM tmbkusboprinci
+        WHERE i_idbkubop = tmbkusbop.i_id
+        AND v_kas_keluar &gt; '0'
+        ) AND NOT EXISTS
+        (SELECT 1
+        FROM tmbkusbank bk
+        WHERE TMBKUSBOP.c_angg_tahun = bk.c_angg_tahun
+        AND to_char(TMBKUSBOP.i_idsekolah) = bk.i_idsekolah
+        AND bk.i_idbku = TMBKUSBOP.i_id
+        AND bk.c_angg_sumbdana = 2
+        AND bk.c_bank_status = 1)
+    </update>
+    <select id="getListSisa" parameterType="java.util.Map" resultType="ebkus.model.StatusBku">
+        SELECT   i_id AS ID
+        FROM tmbkusbop
+        WHERE c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND c_bku_koreksi = '0'
+        AND i_idsekolah = #{idSekolah}
+        AND i_bkuno = 0
+        AND d_posting IS NULL
+        AND c_angg_triwulan = #{triwulan}
+        AND c_bku_status IN ('0', '1', '2')
+        AND EXISTS (SELECT 1
+        FROM tmbkusboprinci
+        WHERE i_idbkubop = tmbkusbop.i_id
+        AND v_kas_keluar &gt; '0')
+        ORDER BY i_bkuno_mohon
+    </select>
+
+    <delete id="deleteSisa" parameterType="java.util.Map"  >
+        DELETE TMBKUSBOP WHERE
+        c_angg_tahun = #{tahun} AND c_trx = #{kodeTrx}
+        AND i_idsekolah = #{idSekolah}
+        AND c_angg_triwulan = #{triwulan}
+        AND c_bku_status IN ('0', '1', '2')
+        AND c_bku_koreksi = '0'
+        AND i_bkuno = 0
+        AND d_posting IS NULL
+    </delete>
+
+    <delete id="deleteRinciSisa" parameterType="java.lang.Integer"  >
+        DELETE TMBKUSBOPRINCI WHERE I_IDBKUBOP = #{id}
+    </delete>
+    
+    <select id="validateNilai" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM (SELECT SUM (spj) spj, SUM (pajak) pajak
+        FROM (SELECT NVL (SUM (v_spj_pajak), 0) spj, 0 pajak
+        FROM tmbkusbop a, tmbkusboprinci b
+        WHERE     a.i_id = b.i_idbkubop
+        AND a.i_idsekolah = #{idsekolah}
+        AND i_bkuno_mohon = #{nomohon}
+        AND a.c_angg_triwulan = #{triwulan}
+        AND a.c_angg_tahun = #{tahun}
+        UNION ALL
+        SELECT 0 spj, NVL (SUM (v_kas_terima), 0) pajak
+        FROM tmbkusbop a, tmbkusboprinci b
+        WHERE     a.i_id = b.i_idbkubop
+        AND a.i_idsekolah = #{idsekolah}
+        AND i_bkuno_ref = #{nomohon}
+        AND a.c_angg_triwulan = #{triwulan}
+        AND a.c_angg_tahun = #{tahun}))
+        WHERE spj != pajak
+    </select>
+
+</mapper>

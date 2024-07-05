@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.KegiatanMapper">
+
+    <select id="getKegiatanSekolah" parameterType="java.util.Map"  resultType="ebkus.model.Kegiatan">
+
+        SELECT idKegiatan, kodeKegiatan, namaKegiatan, ketSnp, ketBidang, ketSumbdana
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        select tmrkaskegiatan.i_id as idKegiatan, c_kegiatan as kodeKegiatan,
+        n_kegiatan as namaKegiatan, n_snp as ketSnp, n_bidang as ketBidang,
+        case
+        when c_angg_sumbdana = '1' then 'BOS'
+        when c_angg_sumbdana = '2' then 'BOP - Alokasi Dasar'
+        when c_angg_sumbdana = '3' then 'BOP - Alokasi Kinerja'
+        when c_angg_sumbdana = '4' then 'BOP - Alokasi Keadilan'
+        end as ketSumbdana
+        from tmrkaskegiatan, trbkusbidang, trbkussnp
+        where tmrkaskegiatan.i_idbidang = trbkusbidang.i_id
+        and tmrkaskegiatan.i_idsnp = trbkussnp.i_id
+
+        <if test="kode != null and kode != '' ">
+            and c_kegiatan like '%'||#{kode}||'%'
+        </if>
+
+        <if test="nama != null and nama != '' ">
+            and upper(tmrkaskegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        order by c_kegiatan
+
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakKegiatanSekolah" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select tmrkaskegiatan.i_id as idKegiatan, c_kegiatan as kodeKegiatan,
+        n_kegiatan as namaKegiatan, n_snp as ketSnp, n_bidang as ketBidang,
+        case
+        when c_angg_sumbdana = '1' then 'BOS'
+        when c_angg_sumbdana = '2' then 'BOP - Alokasi Dasar'
+        when c_angg_sumbdana = '3' then 'BOP - Alokasi Kinerja'
+        when c_angg_sumbdana = '4' then 'BOP - Alokasi Keadilan'
+        end as ketSumbdana
+        from tmrkaskegiatan, trbkusbidang, trbkussnp
+        where tmrkaskegiatan.i_idbidang = trbkusbidang.i_id
+        and tmrkaskegiatan.i_idsnp = trbkussnp.i_id
+
+        <if test="kode != null and kode != '' ">
+            and c_kegiatan like '%'||#{kode}||'%'
+        </if>
+
+        <if test="nama != null and nama != '' ">
+            and upper(tmrkaskegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        and c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        order by c_kegiatan
+        )
+    </select>
+
+    <select id="getKegBOPperTW" parameterType="java.util.Map"  resultType="ebkus.model.Kegiatan">
+
+        SELECT idKegiatan, kodeKegiatan, namaKegiatan, ketSnp, ketBidang, ketSumbdana
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        select  distinct  i_idkegiatan as idKegiatan, B.c_angg_sumbdana as kodeSumbdana,
+        n_snp as ketSnp, n_bidang as ketBidang, k.c_kegiatan as kodeKegiatan,
+        n_kegiatan as namaKegiatan,
+        case
+        when B.c_angg_sumbdana = '2' then 'BOP - Alokasi Dasar'
+        when B.c_angg_sumbdana = '3' then 'BOP - Alokasi Kinerja'
+        when B.c_angg_sumbdana = '4' then 'BOP - Alokasi Keadilan'
+        end as ketSumbdana
+		from
+		<if test="tahun == '2018' ">
+         tmrkasbl B,
+        </if>
+		<if test="tahun == '2019' ">
+         tmrkasblrinci B,
+        </if>
+		tmrkaskegiatan K, trbkusbidang , trbkussnp
+        where B.i_idkegiatan = K.i_id
+        and B.c_angg_tahun = #{tahun}
+        and B.i_idsekolah = #{idsekolah}
+        and B.c_angg_sumbdana != 1
+        and K.i_idbidang = trbkusbidang.i_id
+        and K.i_idsnp = trbkussnp.i_id
+        <if test="triwulan == 1 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0 )
+        </if>
+
+        <if test="triwulan == 2 ">
+            and (v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0 )
+        </if>
+
+        <if test="triwulan == 3 ">
+            and (v_rpa_bulan07 > 0 or v_rpa_bulan08 > 0 or v_rpa_bulan09 > 0 )
+        </if>
+
+        <if test="triwulan == 4 ">
+            and (v_rpa_bulan10 > 0 or v_rpa_bulan11 > 0 or v_rpa_bulan12 > 0 )
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and k.c_kegiatan like '%'||#{kode}||'%'
+        </if>
+
+        <if test="nama != null and nama != '' ">
+            and upper(K.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        order by i_idkegiatan, k.c_kegiatan
+
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakKegBOPperTW" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select  distinct  i_idkegiatan, B.c_angg_sumbdana as kodeSumbdana,
+        n_snp as ketSnp, n_bidang as ketBidang, k.c_kegiatan as kodeKegiatan,
+        n_kegiatan as namaKegiatan,
+        case
+        when B.c_angg_sumbdana = '2' then 'BOP - Alokasi Dasar'
+        when B.c_angg_sumbdana = '3' then 'BOP - Alokasi Kinerja'
+        when B.c_angg_sumbdana = '4' then 'BOP - Alokasi Keadilan'
+        end as ketSumbdana
+        from
+		<if test="tahun == '2018' ">
+         tmrkasbl B,
+        </if>
+		<if test="tahun == '2019' ">
+         tmrkasblrinci B,
+        </if>
+		 tmrkaskegiatan K, trbkusbidang , trbkussnp
+        where B.i_idkegiatan = K.i_id
+        and B.c_angg_tahun = #{tahun}
+        and B.i_idsekolah = #{idsekolah}
+        and B.c_angg_sumbdana != 1
+        and K.i_idbidang = trbkusbidang.i_id
+        and K.i_idsnp = trbkussnp.i_id
+        <if test="triwulan == 1 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0 )
+        </if>
+
+        <if test="triwulan == 2 ">
+            and (v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0 )
+        </if>
+
+        <if test="triwulan == 3 ">
+            and (v_rpa_bulan07 > 0 or v_rpa_bulan08 > 0 or v_rpa_bulan09 > 0 )
+        </if>
+
+        <if test="triwulan == 4 ">
+            and (v_rpa_bulan10 > 0 or v_rpa_bulan11 > 0 or v_rpa_bulan12 > 0 )
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and k.c_kegiatan like '%'||#{kode}||'%'
+        </if>
+
+        <if test="nama != null and nama != '' ">
+            and upper(K.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+        )
+
+    </select>
+    <select id="getKegBOSperTW" parameterType="java.util.Map"  resultType="ebkus.model.Kegiatan">
+
+        SELECT idKegiatan, kodeKegiatan, namaKegiatan, ketSnp, ketBidang, ketSumbdana
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        select  distinct  i_idkegiatan as idKegiatan, B.c_angg_sumbdana as kodeSumbdana,
+        n_snp as ketSnp, n_bidang as ketBidang, k.c_kegiatan as kodeKegiatan,
+        n_kegiatan as namaKegiatan,
+        'BOS' as ketSumbdana
+        from
+		<if test="tahun == '2018' ">
+         tmrkasbl B,
+        </if>
+		<if test="tahun == '2019' ">
+         tmrkasblrinci B,
+        </if>
+		 tmrkaskegiatan K, trbkusbidang , trbkussnp
+        where B.i_idkegiatan = K.i_id
+        and B.c_angg_tahun = #{tahun}
+        and B.i_idsekolah = #{idsekolah}
+        and B.c_angg_sumbdana = 1
+        and K.i_idbidang = trbkusbidang.i_id
+        and K.i_idsnp = trbkussnp.i_id
+        <if test="triwulan == 1 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0 )
+        </if>
+
+        <if test="triwulan == 2 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0
+            or v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0 )
+        </if>
+
+        <if test="triwulan == 3 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0
+            or v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0
+            or v_rpa_bulan07 > 0 or v_rpa_bulan08 > 0 or v_rpa_bulan09 > 0 )
+        </if>
+
+        <if test="triwulan == 4 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0
+            or v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0
+            or v_rpa_bulan07 > 0 or v_rpa_bulan08 > 0 or v_rpa_bulan09 > 0
+            or v_rpa_bulan10 > 0 or v_rpa_bulan11 > 0 or v_rpa_bulan12 > 0 )
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and k.c_kegiatan like '%'||#{kode}||'%'
+        </if>
+
+        <if test="nama != null and nama != '' ">
+            and upper(K.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        order by i_idkegiatan, k.c_kegiatan
+
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakKegBOSperTW" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select  distinct  i_idkegiatan, B.c_angg_sumbdana as kodeSumbdana,
+        n_snp as ketSnp, n_bidang as ketBidang, k.c_kegiatan as kodeKegiatan,
+        n_kegiatan as namaKegiatan,
+        'BOS' as ketSumbdana
+        from
+		<if test="tahun == '2018' ">
+         tmrkasbl B,
+        </if>
+		<if test="tahun == '2019' ">
+         tmrkasblrinci B,
+        </if>
+		 tmrkaskegiatan K, trbkusbidang , trbkussnp
+        where B.i_idkegiatan = K.i_id
+        and B.c_angg_tahun = #{tahun}
+        and B.i_idsekolah = #{idsekolah}
+        and B.c_angg_sumbdana = 1
+        and K.i_idbidang = trbkusbidang.i_id
+        and K.i_idsnp = trbkussnp.i_id
+        <if test="triwulan == 1 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0 )
+        </if>
+
+        <if test="triwulan == 2 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0
+            or v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0 )
+        </if>
+
+        <if test="triwulan == 3 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0
+            or v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0
+            or v_rpa_bulan07 > 0 or v_rpa_bulan08 > 0 or v_rpa_bulan09 > 0 )
+        </if>
+
+        <if test="triwulan == 4 ">
+            and (v_rpa_bulan01 > 0 or v_rpa_bulan02 > 0 or v_rpa_bulan03 > 0
+            or v_rpa_bulan04 > 0 or v_rpa_bulan05 > 0 or v_rpa_bulan06 > 0
+            or v_rpa_bulan07 > 0 or v_rpa_bulan08 > 0 or v_rpa_bulan09 > 0
+            or v_rpa_bulan10 > 0 or v_rpa_bulan11 > 0 or v_rpa_bulan12 > 0 )
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and k.c_kegiatan like '%'||#{kode}||'%'
+        </if>
+
+        <if test="nama != null and nama != '' ">
+            and upper(K.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+        )
+
+    </select>
+
+
+
+</mapper>

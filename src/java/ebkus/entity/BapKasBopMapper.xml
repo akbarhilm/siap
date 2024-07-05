@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.BapKasBopMapper">
+
+    <select id="getCountTglBkuProses" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  nvl( count(*), 0 ) as tglBkuPros
+        from tmbkusboprekap
+        where i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and D_BKU_TUTUP is not null
+    </select>
+
+    <select id="getBapKas" parameterType="java.util.Map"  resultType="ebkus.model.BapKas">
+        SELECT  idSekolahBAPKas, tahun,"sekolah.idSekolah", namaHari,  tglBkuBa, triwulan, nrkPa, nipPa,
+        jabatanPa,namaPa, nrkBend, nipBend,namaBend,jabatanBend, noSkGub,
+        tglSkGub,nilaiUangKertas, nilaiUangLogam, nilaiUangSp2d,nilaiUangSaldoBank,
+        nilaiUangSuratBerharga,nilaiUangTotalBkuBa, nilaiUangSaldoBkuBa,nilaiUangSelisihBkuBa,
+        ketBkuBa, statusBkuBa
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        select
+        i_id as idSekolahBAPKas,  C_ANGG_TAHUN as tahun, i_idsekolah AS "sekolah.idSekolah",
+        N_BKUSBOPBA_HARI as namaHari,
+        TO_CHAR(to_date(C_BKUSBOPBA_TGL,'yyyymmdd'), 'DD-MM-YYYY'
+        ,'nls_date_language = INDONESIAN') AS tglBkuBa, C_ANGG_TRIWULAN as triwulan,
+        I_NRK_PA as nrkPa,I_NIP_PA as nipPa,
+        N_PA_JABATAN as jabatanPa, N_PA as namaPa,I_NRK_PKBLJ as nrkBend,
+        I_NIP_PKBLJ as nipBend,N_PKBLJ as namaBend,N_PK_JABATAN as jabatanBend,
+        I_SKGUB as noSkGub,D_SKGUB as tglSkGub,V_KAS_KERTAS as nilaiUangKertas,
+        V_KAS_LOGAM as nilaiUangLogam,V_KAS_LAIN1 as nilaiUangSp2d,V_KAS_SALDOBANK as nilaiUangSaldoBank,
+        V_KAS_LAIN2 as nilaiUangSuratBerharga,V_BKUSBOPBA_TOTAL as nilaiUangTotalBkuBa,
+        V_BKUSBOPBA_SALDO as nilaiUangSaldoBkuBa,V_BKUSBOPBA_SELISIH as nilaiUangSelisihBkuBa,
+        E_BKUSBOPBA as ketBkuBa,C_STATUS as statusBkuBa
+        FROM tmbkusbopba
+        WHERE  i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        order by triwulan
+        )a)WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getCountBapKas" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count (*) as banyak from tmbkusbopba
+        where i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+
+    </select>
+
+    <select id="getTriwulan"   parameterType="java.util.Map" resultType="java.util.Map">
+
+        select distinct tw as triwulan,
+        case when tw = '1' then 'Triwulan I'
+        when tw = '2' then 'Triwulan II'
+        when tw = '3' then 'Triwulan III'
+        when tw = '4' then 'Triwulan IV'
+        end AS kettw from (
+        select c_angg_triwulan as tw
+        from tmbkusbop a
+        where i_idsekolah = #{idsekolah} and c_angg_tahun = #{tahun}
+        and not exists (select 1 from tmbkusbopba b where i_idsekolah =  #{idsekolah} and c_angg_tahun = #{tahun} and  b.c_angg_triwulan = a.c_angg_triwulan )
+
+        union all
+        select '1' as tw from dual
+        where not exists (select 1 from tmbkusbopba b where i_idsekolah =  #{idsekolah} and c_angg_tahun = #{tahun} and  b.c_angg_triwulan = '1' )
+
+        union all
+        select c_angg_triwulan as tw from tmbkusboprekap a
+        where i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and not exists (select 1 from tmbkusbopba b where i_idsekolah =  #{idsekolah} and c_angg_tahun = #{tahun} and  b.c_angg_triwulan = a.c_angg_triwulan )
+        )
+        order by 1
+
+    </select>
+    <select id="getBapTriwulan"   parameterType="java.util.Map" resultType="java.lang.Integer">
+        select c_angg_triwulan from tmbkusbopba
+        where i_idsekolah =  #{idsekolah} and c_angg_tahun = #{tahun}
+
+    </select>
+
+    <insert id="insertBapKas" parameterType="ebkus.model.BapKas"  useGeneratedKeys="true" keyColumn="I_ID" keyProperty="idSekolahBAPKas" >
+        INSERT INTO tmbkusbopba ( I_ID,
+        C_ANGG_TAHUN,
+        I_IDSEKOLAH,
+        C_ANGG_TRIWULAN,
+        N_BKUSBOPBA_HARI,
+        C_BKUSBOPBA_TGL,
+        I_NRK_PA,
+        I_NIP_PA,
+        N_PA_JABATAN,
+        N_PA,
+        I_NRK_PKBLJ,
+        I_NIP_PKBLJ,
+        N_PKBLJ,
+        N_PK_JABATAN,
+        I_SKGUB,
+        D_SKGUB,
+        V_KAS_KERTAS,
+        V_KAS_LOGAM,
+        V_KAS_LAIN1,
+        V_KAS_SALDOBANK,
+        V_KAS_LAIN2,
+        V_BKUSBOPBA_TOTAL,
+        V_BKUSBOPBA_SALDO,
+        V_BKUSBOPBA_SELISIH,
+        E_BKUSBOPBA,
+        I_PGUN_REKAM,D_PGUN_REKAM)
+        VALUES (
+        #{idSekolahBAPKas},
+        #{tahun},
+        #{sekolah.idSekolah},
+        #{triwulan},
+        TO_CHAR(to_date( #{tglBkuBa} ,'yyyymmdd'), 'DAY' ,'nls_date_language = INDONESIAN'),
+        #{tglBkuBa},
+        #{nrkPa},
+        #{nipPa},
+        #{jabatanPa},
+        #{namaPa},
+        #{nrkBend},
+        #{nipBend},
+        #{namaBend},
+        #{jabatanBend},
+        #{noSkGub},
+        #{tglSkGub},
+        #{nilaiUangKertas},
+        #{nilaiUangLogam},
+        #{nilaiUangSp2d},
+        #{nilaiUangSaldoBank},
+        #{nilaiUangSuratBerharga},
+        #{nilaiUangTotalBkuBa},
+        #{nilaiUangSaldoBkuBa},
+        #{nilaiUangSelisihBkuBa},
+        #{ketBkuBa},
+        #{idEntry},#{tglEntry}
+        )
+    </insert>
+
+    <insert id="insertBapKasRinci" parameterType="ebkus.model.BapKasRinci"  useGeneratedKeys="true" >
+        INSERT INTO tmbkusbopbarinci (
+        I_ID,
+        I_IDBKUSBOPBA,
+        I_NOURUT,
+        N_BA,
+        V_BA)
+        VALUES (
+        #{idSekolahBAPKasRinci},
+        #{idSekolahBAPKas},
+        (select
+        NVL (MAX (I_NOURUT), 0) + 1 AS noUrut
+        from tmbkusbopbarinci
+        where I_IDBKUSBOPBA = #{idSekolahBAPKas}),
+        #{namaBapKas},
+        #{nilaiBapKas}
+        )
+    </insert>
+
+    <select id="getBapKasById" parameterType="java.util.Map" resultType="ebkus.model.BapKas">
+        select i_id as idSekolahBAPKas,   c_angg_triwulan as triwulan, N_BKUSBOPBA_HARI as namaHari,
+        C_BKUSBOPBA_TGL AS tglBkuBaformat,  to_char((sysdate),'dd/mm/yyyy') AS tglBkuBa2,
+        I_NRK_PA as nrkPa,I_NIP_PA as nipPa,
+        N_PA_JABATAN as jabatanPa, N_PA as namaPa,I_NRK_PKBLJ as nrkBend,
+        I_NIP_PKBLJ as nipBend,N_PKBLJ as namaBend,N_PK_JABATAN as jabatanBend,
+        I_SKGUB as noSkGub,D_SKGUB as tglSkGub,V_KAS_KERTAS as nilaiUangKertas,
+        V_KAS_LOGAM as nilaiUangLogam,V_KAS_LAIN1 as nilaiUangSp2d,V_KAS_SALDOBANK as nilaiUangSaldoBank,
+        V_KAS_LAIN2 as nilaiUangSuratBerharga, V_BKUSBOPBA_TOTAL as nilaiUangTotalBkuBa,
+        V_BKUSBOPBA_SALDO as nilaiUangSaldoBkuBa, V_BKUSBOPBA_SELISIH as nilaiUangSelisihBkuBa,
+        E_BKUSBOPBA as ketBkuBa,C_STATUS as statusBkuBa
+        FROM tmbkusbopba
+        WHERE  i_idsekolah = #{idsekolah}
+        and i_id = #{id}
+    </select>
+    <select id="getBapKasByTriwulan" parameterType="java.util.Map" resultType="ebkus.model.BapKas">
+        select i_id as idSekolahBAPKas,   c_angg_triwulan as triwulan, N_BKUSBOPBA_HARI as namaHari,
+        C_BKUSBOPBA_TGL AS tglBkuBaformat,  to_char((sysdate),'dd/mm/yyyy') AS tglBkuBa2,
+        I_NRK_PA as nrkPa,I_NIP_PA as nipPa,
+        N_PA_JABATAN as jabatanPa, N_PA as namaPa,I_NRK_PKBLJ as nrkBend,
+        I_NIP_PKBLJ as nipBend,N_PKBLJ as namaBend,N_PK_JABATAN as jabatanBend,
+        I_SKGUB as noSkGub,D_SKGUB as tglSkGub,V_KAS_KERTAS as nilaiUangKertas,
+        V_KAS_LOGAM as nilaiUangLogam,V_KAS_LAIN1 as nilaiUangSp2d,V_KAS_SALDOBANK as nilaiUangSaldoBank,
+        V_KAS_LAIN2 as nilaiUangSuratBerharga, V_BKUSBOPBA_TOTAL as nilaiUangTotalBkuBa,
+        V_BKUSBOPBA_SALDO as nilaiUangSaldoBkuBa, V_BKUSBOPBA_SELISIH as nilaiUangSelisihBkuBa,
+        E_BKUSBOPBA as ketBkuBa,C_STATUS as statusBkuBa
+        FROM tmbkusbopba
+        WHERE  i_idsekolah = #{idsekolah}
+        and c_angg_tahun = #{tahun}
+        and c_angg_triwulan = #{triwulan}
+    </select>
+
+    <select id="getAllBAPKAS" parameterType="java.util.Map"  resultType="ebkus.model.BapKas">
+        select
+        I_ID as idSekolahBAPKasRinci,
+        I_IDBKUSBOPBA as idSekolahBAPKas,
+        N_BA as namaBapKas,
+        V_BA as nilaiBapKas
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT *
+        from tmbkusbopbarinci
+        where I_IDBKUSBOPBA = #{idSekolahBAPKas}
+        order by i_id desc
+        ) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getBanyakAllBAPKAS" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT(I_ID) AS banyakrinci
+        FROM   tmbkusbopbarinci
+        WHERE I_IDBKUSBOPBA = #{idSekolahBAPKas}
+    </select>
+
+    <update id="updateBapKas" parameterType="ebkus.model.BapKas"   >
+        UPDATE tmbkusbopba
+        SET
+        C_ANGG_TAHUN = #{tahun},
+        I_IDSEKOLAH =  #{sekolah.idSekolah},
+        N_BKUSBOPBA_HARI = TO_CHAR(to_date( #{tglBkuBa} ,'yyyymmdd'), 'DAY', 'nls_date_language = INDONESIAN'),
+        C_BKUSBOPBA_TGL = #{tglBkuBa},
+        I_NRK_PA = #{nrkPa},
+        I_NIP_PA = #{nipPa},
+        N_PA_JABATAN =  #{jabatanPa},
+        N_PA = #{namaPa},
+        I_NRK_PKBLJ = #{nrkBend},
+        I_NIP_PKBLJ =   #{nipBend},
+        N_PKBLJ = #{namaBend},
+        N_PK_JABATAN = #{jabatanBend},
+        I_SKGUB =  #{noSkGub},
+        D_SKGUB = #{tglSkGub},
+        V_KAS_KERTAS = #{nilaiUangKertas},
+        V_KAS_LOGAM =   #{nilaiUangLogam},
+        V_KAS_LAIN1 = #{nilaiUangSp2d},
+        V_KAS_SALDOBANK = #{nilaiUangSaldoBank},
+        V_KAS_LAIN2 = #{nilaiUangSuratBerharga},
+        V_BKUSBOPBA_TOTAL =  #{nilaiUangTotalBkuBa},
+        V_BKUSBOPBA_SALDO = #{nilaiUangSaldoBkuBa},
+        V_BKUSBOPBA_SELISIH = #{nilaiUangSelisihBkuBa},
+        E_BKUSBOPBA =   #{ketBkuBa}
+        WHERE  I_IDSEKOLAH = #{sekolah.idSekolah}
+        and c_angg_tahun = #{tahun}
+        and I_ID = #{idSekolahBAPKas}
+
+    </update>
+    <update id="updateApproval" parameterType="java.util.Map"   >
+        UPDATE tmbkusbopba
+        SET
+        C_STATUS =   #{ke},
+        I_PGUN_UBAH = #{idPengguna},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{idSekolahBAPKas}
+
+    </update>
+
+    <update id="updateBapKasRinci" parameterType="ebkus.model.BapKasRinci" >
+        UPDATE tmbkusbopbarinci
+        SET
+        I_IDBKUSBOPBA = #{idSekolahBAPKas},
+        N_BA = #{namaBapKas},
+        V_BA = #{nilaiBapKas}
+        where I_ID = #{idSekolahBAPKasRinci}
+    </update>
+
+    <delete id="deleteBapKas" parameterType="java.util.Map">
+        delete tmbkusbopba WHERE  I_ID = #{idba}
+    </delete>
+
+    <delete id="deleteBapKasRinci" parameterType="java.util.Map">
+        delete tmbkusbopbarinci WHERE  I_IDBKUSBOPBA = #{idba}
+    </delete>
+
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5,E_PERATURAN_SPD6,
+        E_PERATURAN_SPD7
+        from   TRDOKREFF
+    </select>
+
+    <select id="getNilaiKas" parameterType="java.util.Map"  resultType="ebkus.model.BapKas">
+        select sum(kasSaatIni) as nilaiUangSaldoBkuBa from (
+
+        select nvl((sum(B.v_kas_terima) - sum(B.v_kas_keluar)),0) as kasSaatIni
+        from TMBKUSBOP A, TMBKUSBOPRINCI B
+        where A.I_IDSEKOLAH = #{idsekolah} and A.c_angg_tahun = #{tahun}
+        AND A.I_ID = B.I_IDBKUBOP
+        AND A.C_BKU_TUTUP = '1'
+        AND A.I_BKUNO != 0
+        AND A.D_POSTING IS NOT NULL
+        and A.C_ANGG_TRIWULAN &lt;= #{triwulan}
+
+        )
+    </select>
+    <select id="isTutupBuku" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select (nvl(max(c_angg_triwulan),0)+1) as triwulan
+        from tmbkusboprekap
+        where c_angg_tahun = #{tahun}
+        and i_idsekolah = #{idsekolah}
+        and d_bku_tutup is not null
+    </select>
+</mapper>

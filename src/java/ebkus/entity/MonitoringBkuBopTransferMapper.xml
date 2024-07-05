@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.MonitoringBkuBopTransferMapper">
+
+    <select id="getListIndex" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT kodeTransaksi, idTransaksi, noBukti, tglDok, uraianBukti, idKegiatan,
+        kodeKeg, bkuStatus, ketKegiatan, idBas, kodeakun, nilaiMasuk, nilaiKeluar, idBku,
+        noBkuMohon, kodeKoreksi, saldoKas, noBkuRef, kodePajak, kodeTutup, kodeBkuPajak
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT D_POSTING AS tglPosting, C_TRX as kodeTransaksi, I_IDTRX as idTransaksi,
+        I_DOC_BUKTI as noBukti, D_DOC_BUKTI as tglDok, E_DOC_BUKTI as uraianBukti, I_IDKEGIATAN as idKegiatan,
+        kodeKeg, bkuStatus, kodeTutup, ketKegiatan, I_IDBAS as idBas, C_AKUN as kodeakun, NVL(V_KAS_TERIMA,0) as nilaiMasuk,
+        NVL(V_KAS_KELUAR,0) as nilaiKeluar, idBku, noBkuMohon, kodeKoreksi, noBkuRef, kodePajak, kodeBkuPajak,
+        SUM(NVL(V_KAS_TERIMA,0) - NVL(V_KAS_KELUAR,0)) OVER (PARTITION BY I_IDSEKOLAH ORDER BY ROWNUM, I_IDSEKOLAH RANGE UNBOUNDED PRECEDING) AS saldoKas
+        FROM(
+
+        SELECT A.C_ANGG_TAHUN, A.I_IDSEKOLAH,  A.D_POSTING,
+        A.C_TRX, A.I_IDTRX, A.I_DOC_BUKTI, A.D_DOC_BUKTI,
+        REPLACE(REPLACE(REPLACE(TRIM(E_DOC_BUKTI),'  ',' '),'  ',' '),'  ',' ') AS E_DOC_BUKTI,
+        A.I_IDKEGIATAN,  DECODE(k.c_kegiatan,NULL,NULL,  k.c_kegiatan || ' / ' || k.n_kegiatan) as ketKegiatan,
+        k.c_kegiatan as kodeKeg, A.c_bku_status as bkuStatus, A.c_bku_tutup as kodeTutup, R.I_IDBAS, R.C_AKUN, R.V_KAS_TERIMA, R.V_KAS_KELUAR,
+        a.i_id as idBku, a.i_bkuno_mohon as noBkuMohon, a.c_bku_koreksi as kodeKoreksi, i_bkuno_ref as noBkuRef,
+        case when (c_trx like 'P%' or c_trx = 'JG') and v_kas_terima > 0 then
+        (select count(*)
+        from tmbkusbop B where B.c_angg_tahun = #{tahun}
+        and B.i_idsekolah = #{idsekolah}
+        and B.c_trx = A.c_trx
+        and B.i_bkuno_ref = A.i_bkuno_mohon )
+        else 0 end as kodePajak, c_bku_pajak as kodeBkuPajak
+        FROM tmbkusboprinci R, tmbkusbop A  left join tmrkaskegiatan k on a.i_idkegiatan = k.i_id
+        WHERE R.i_idbkubop = A.i_id
+        and A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSEKOLAH = #{idsekolah}
+        AND R.V_KAS_KELUAR > 0
+        AND A.D_POSTING IS NOT NULL
+        AND A.c_angg_triwulan = #{triwulan}
+        AND (A.C_TRX IN ('JJ', 'JG', 'ST'))
+        AND a.c_aktif = 1
+        ORDER BY A.D_DOC_BUKTI, a.i_bkuno_mohon)
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListIndex" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT D_POSTING AS tglPosting, C_TRX as kodeTransaksi, I_IDTRX as idTransaksi,
+        I_DOC_BUKTI as noBukti, D_DOC_BUKTI as tglDok, E_DOC_BUKTI as uraianBukti, I_IDKEGIATAN as idKegiatan,
+        kodeKeg, bkuStatus, kodeTutup, ketKegiatan, I_IDBAS as idBas, C_AKUN as kodeakun, NVL(V_KAS_TERIMA,0) as nilaiMasuk,
+        NVL(V_KAS_KELUAR,0) as nilaiKeluar, idBku, noBkuMohon, kodeKoreksi, noBkuRef, kodePajak, kodeBkuPajak,
+        SUM(NVL(V_KAS_TERIMA,0) - NVL(V_KAS_KELUAR,0)) OVER (PARTITION BY I_IDSEKOLAH ORDER BY ROWNUM, I_IDSEKOLAH RANGE UNBOUNDED PRECEDING) AS saldoKas
+        FROM(
+
+
+        SELECT A.C_ANGG_TAHUN, A.I_IDSEKOLAH,  A.D_POSTING,
+        A.C_TRX, A.I_IDTRX, A.I_DOC_BUKTI, A.D_DOC_BUKTI,
+        REPLACE(REPLACE(REPLACE(TRIM(E_DOC_BUKTI),'  ',' '),'  ',' '),'  ',' ') AS E_DOC_BUKTI,
+        A.I_IDKEGIATAN,  DECODE(k.c_kegiatan,NULL,NULL,  k.c_kegiatan || ' / ' || k.n_kegiatan) as ketKegiatan,
+        k.c_kegiatan as kodeKeg, A.c_bku_status as bkuStatus, A.c_bku_tutup as kodeTutup, R.I_IDBAS, R.C_AKUN, R.V_KAS_TERIMA, R.V_KAS_KELUAR,
+        a.i_id as idBku, a.i_bkuno_mohon as noBkuMohon, a.c_bku_koreksi as kodeKoreksi, i_bkuno_ref as noBkuRef,
+        case when (c_trx like 'P%' or c_trx = 'JG') and v_kas_terima > 0 then
+        (select count(*)
+        from tmbkusbop B where B.c_angg_tahun = #{tahun}
+        and B.i_idsekolah = #{idsekolah}
+        and B.c_trx = A.c_trx
+        and B.i_bkuno_ref = A.i_bkuno_mohon )
+        else 0 end as kodePajak, c_bku_pajak as kodeBkuPajak
+        FROM tmbkusboprinci R, tmbkusbop A  left join tmrkaskegiatan k on a.i_idkegiatan = k.i_id
+        WHERE R.i_idbkubop = A.i_id
+        and A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSEKOLAH = #{idsekolah}
+        AND R.V_KAS_KELUAR > 0
+        AND A.D_POSTING IS NOT NULL
+        AND A.c_angg_triwulan = #{triwulan}
+        AND (A.C_TRX IN ('JJ', 'JG', 'ST'))
+        AND a.c_aktif = 1
+        ORDER BY A.D_DOC_BUKTI, a.i_bkuno_mohon)
+        )
+    </select>
+
+    <select id="getNilaiIndex" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT nvl(sum  (v_kas_terima),0) nilaiMasuk , nvl(sum ( v_kas_keluar),0) nilaiKeluar ,
+        nvl(sum(v_kas_terima - v_kas_keluar) ,0)  as nilaiSisa FROM (
+        SELECT   (r.v_kas_terima)  ,(r.v_kas_keluar)
+        FROM tmbkusbop a, tmbkusboprinci r
+        WHERE a.i_id = r.i_idbkubop
+        and a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND A.c_angg_triwulan = #{triwulan}
+        AND a.d_posting is not null
+        AND (A.C_TRX IN ('JJ', 'JG', 'ST')))
+
+    </select>
+    <select id="getNilaiSaldo" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT nvl(sum  (v_kas_terima),0) nilaiMasuk FROM (
+        SELECT   (r.v_kas_terima)
+        FROM tmbkusbop a, tmbkusboprinci r
+        WHERE a.i_id = r.i_idbkubop
+        and a.c_angg_tahun = #{tahun}
+        AND a.i_idsekolah = #{idsekolah}
+        AND A.c_angg_triwulan = #{triwulan}
+        AND A.C_TRX IN ('JO', 'JG'))
+    </select>
+</mapper>

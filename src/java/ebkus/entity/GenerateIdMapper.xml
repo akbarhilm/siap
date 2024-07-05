@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.GenerateIdMapper">
+    
+    <insert id="insertGetId" statementType="CALLABLE" parameterType="ebkus.model.GenerateId" > 
+        {CALL proc_fncbkugenid(#{namaTabel,mode=IN}, #{id,mode=OUT,jdbcType=NUMERIC})}
+    </insert>
+    
+    <insert id="insertGetIdChar" statementType="CALLABLE" parameterType="ebkus.model.GenerateId" >
+        {CALL proc_fncbkugenid_char(#{namaTabel,mode=IN}, #{kodeApp,mode=IN}, #{idFormat,mode=OUT,jdbcType=VARCHAR})}
+    </insert>
+    
+</mapper>

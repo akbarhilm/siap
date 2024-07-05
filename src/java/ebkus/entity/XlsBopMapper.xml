@@ -1,0 +1,651 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.XlsBopMapper">
+    
+    <select id="getListRkasBkus" parameterType="java.util.Map"  resultType="java.util.Map">
+      SELECT *
+        FROM (SELECT   ROWNUM AS rn, a.*
+        FROM (  
+        select  idGIATRKAS,
+   
+  
+ 
+   tahun,
+   npsn,
+   namaSEKOLAH,
+   kodeGIAT,
+   namaGIAT,
+   kodeREKENING,
+   namaREKENING,
+
+ 
+   sum(PAGU_RKAS) paguRKAS,
+   sum(PENGAJUAN_SPJ_TW1) pengajuanSPJTW1,
+   sum(REALISASI_SPJ_TW1) realisasiSPJTW1,
+   sum(PENGAJUAN_SPJ_TW2) pengajuanSPJTW2,
+   sum(REALISASI_SPJ_TW2) realisasiSPJTW2,
+   sum(PENGAJUAN_SPJ_TW3) pengajuanSPJTW3,
+   sum(REALISASI_SPJ_TW3) realisasiSPJTW3,
+   sum(PENGAJUAN_SPJ_TW4) pengajuanSPJTW4,
+   sum(REALISASI_SPJ_TW4) realisasiSPJTW4,
+   sum(PENGAJUAN_SPJ) pengajuanSPJ,
+   sum(REALISASI_SPJ) realisasiSPJ,
+   sum(TOTAL_SPJ) totalSPJ,
+   sum(SISA_RKAS) sisaRKAS
+   from(
+            SELECT   tmrkaskegiatan.i_idgiat_rkas  idGIATRKAS,
+            tmrkasblrinci.i_idgiatrinci_rkas idKEGIATAN,
+            tmrkaskegiatan.i_id AS idkegiatan,
+            tmrkasblrinci.i_id AS idblrinci,
+            tmrkaskegiatan.c_angg_tahun tahun,
+            trsekolah.i_npsn npsn,
+            trsekolah.n_sekolah namaSEKOLAH,
+            tmrkaskegiatan.c_kegiatan kodeGIAT,
+            tmrkaskegiatan.n_kegiatan namaGIAT,
+            trbas.c_akun kodeREKENING,
+            trbas.n_akun namaREKENING,
+            trkategorikomponen.c_komponen kode_komponen,
+            trkategorikomponen.n_komponen nama_komponen,
+            tmrkasblrinci.v_angg_rkas pagu_rkas,
+            NVL (xxx.pengajuan_spj_tw1, 0) AS pengajuan_spj_tw1,
+            NVL (xxx.realisasi_spj_tw1, 0) AS realisasi_spj_tw1,
+            NVL (xxx.pengajuan_spj_tw2, 0) AS pengajuan_spj_tw2,
+            NVL (xxx.realisasi_spj_tw2, 0) AS realisasi_spj_tw2,
+            NVL (xxx.pengajuan_spj_tw3, 0) AS pengajuan_spj_tw3,
+            NVL (xxx.realisasi_spj_tw3, 0) AS realisasi_spj_tw3,
+            NVL (xxx.pengajuan_spj_tw4, 0) AS pengajuan_spj_tw4,
+            NVL (xxx.realisasi_spj_tw4, 0) AS realisasi_spj_tw4,
+            NVL (
+               (  xxx.pengajuan_spj_tw1
+                + xxx.pengajuan_spj_tw2
+                + xxx.pengajuan_spj_tw3
+                + xxx.pengajuan_spj_tw4),
+               0
+            )
+               AS pengajuan_spj,
+            NVL (
+               (  xxx.realisasi_spj_tw1
+                + xxx.realisasi_spj_tw2
+                + xxx.realisasi_spj_tw3
+                + xxx.realisasi_spj_tw4),
+               0
+            )
+               AS realisasi_spj,
+            NVL (
+               (  xxx.pengajuan_spj_tw1
+                + xxx.pengajuan_spj_tw2
+                + xxx.pengajuan_spj_tw3
+                + xxx.pengajuan_spj_tw4
+                + xxx.realisasi_spj_tw1
+                + xxx.realisasi_spj_tw2
+                + xxx.realisasi_spj_tw3
+                + xxx.realisasi_spj_tw4),
+               0
+            )
+               AS total_spj,
+            NVL (
+               (tmrkasblrinci.v_angg_rkas
+                - NVL (
+                     (  xxx.pengajuan_spj_tw1
+                      + xxx.pengajuan_spj_tw2
+                      + xxx.pengajuan_spj_tw3
+                      + xxx.pengajuan_spj_tw4
+                      + xxx.realisasi_spj_tw1
+                      + xxx.realisasi_spj_tw2
+                      + xxx.realisasi_spj_tw3
+                      + xxx.realisasi_spj_tw4),
+                     0
+                  )),
+               0
+            )
+               AS sisa_rkas
+     FROM                  tmrkasblrinci
+                        INNER JOIN
+                           tmrkaskegiatan
+                        ON (tmrkasblrinci.i_idkegiatan = tmrkaskegiatan.i_id)
+                           AND tmrkasblrinci.c_angg_sumbdana &lt;&gt; '1'
+                     INNER JOIN
+                        trbas
+                     ON tmrkasblrinci.i_idbas = trbas.i_id
+                  INNER JOIN
+                     trkategorikomponen
+                  ON (tmrkasblrinci.i_idkomponen = trkategorikomponen.i_id)
+               INNER JOIN
+                  trsekolah
+               ON (trsekolah.i_id = tmrkasblrinci.i_idsekolah)
+            LEFT JOIN
+               (                                           -- 1. BOP draft  --
+                SELECT     i_idblrinci,
+                           SUM (pengajuan_spj_tw1) AS pengajuan_spj_tw1,
+                           NVL (SUM (realisasi_spj_tw1), 0)
+                              AS realisasi_spj_tw1,
+                           NVL (SUM (pengajuan_spj_tw2), 0)
+                              AS pengajuan_spj_tw2,
+                           NVL (SUM (realisasi_spj_tw2), 0)
+                              AS realisasi_spj_tw2,
+                           NVL (SUM (pengajuan_spj_tw3), 0)
+                              AS pengajuan_spj_tw3,
+                           NVL (SUM (realisasi_spj_tw3), 0)
+                              AS realisasi_spj_tw3,
+                           NVL (SUM (pengajuan_spj_tw4), 0)
+                              AS pengajuan_spj_tw4,
+                           NVL (SUM (realisasi_spj_tw4), 0)
+                              AS realisasi_spj_tw4
+                    FROM   (SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '1'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '2'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '3'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '4'
+                            UNION ALL
+                            -- 2. BOP REALISASI   --
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NOT NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '1'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NOT NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '2'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NOT NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '3'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NOT NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '4')
+                           zzz
+                GROUP BY   i_idblrinci) xxx
+            ON xxx.i_idblrinci = tmrkasblrinci.i_id
+            ) where npsn = #{npsn} and tahun=#{tahun}
+            group by idGIATRKAS,tahun,npsn, namaSEKOLAH,kodeGIAT,namaGIAT,kodeREKENING,namaREKENING
+            order by kodeREKENING
+            )a)
+        
+    </select>
+    
+    <select id="getBanyakRkasBkus" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as bayak from(
+         select  idGIATRKAS,
+   
+  
+ 
+   tahun,
+   npsn,
+   namaSEKOLAH,
+   kodeGIAT,
+   namaGIAT,
+   kodeREKENING,
+   namaREKENING,
+
+ 
+   sum(PAGU_RKAS) paguRKAS,
+   sum(PENGAJUAN_SPJ_TW1) pengajuanSPJTW1,
+   sum(REALISASI_SPJ_TW1) realisasiSPJTW1,
+   sum(PENGAJUAN_SPJ_TW2) pengajuanSPJTW2,
+   sum(REALISASI_SPJ_TW2) realisasiSPJTW2,
+   sum(PENGAJUAN_SPJ_TW3) pengajuanSPJTW3,
+   sum(REALISASI_SPJ_TW3) realisasiSPJTW3,
+   sum(PENGAJUAN_SPJ_TW4) pengajuanSPJTW4,
+   sum(REALISASI_SPJ_TW4) realisasiSPJTW4,
+   sum(PENGAJUAN_SPJ) pengajuanSPJ,
+   sum(REALISASI_SPJ) realisasiSPJ,
+   sum(TOTAL_SPJ) totalSPJ,
+   sum(SISA_RKAS) sisaRKAS
+   from(
+            SELECT   tmrkaskegiatan.i_idgiat_rkas  idGIATRKAS,
+            tmrkasblrinci.i_idgiatrinci_rkas idKEGIATAN,
+            tmrkaskegiatan.i_id AS idkegiatan,
+            tmrkasblrinci.i_id AS idblrinci,
+            tmrkaskegiatan.c_angg_tahun tahun,
+            trsekolah.i_npsn npsn,
+            trsekolah.n_sekolah namaSEKOLAH,
+            tmrkaskegiatan.c_kegiatan kodeGIAT,
+            tmrkaskegiatan.n_kegiatan namaGIAT,
+            trbas.c_akun kodeREKENING,
+            trbas.n_akun namaREKENING,
+            trkategorikomponen.c_komponen kode_komponen,
+            trkategorikomponen.n_komponen nama_komponen,
+            tmrkasblrinci.v_angg_rkas pagu_rkas,
+            NVL (xxx.pengajuan_spj_tw1, 0) AS pengajuan_spj_tw1,
+            NVL (xxx.realisasi_spj_tw1, 0) AS realisasi_spj_tw1,
+            NVL (xxx.pengajuan_spj_tw2, 0) AS pengajuan_spj_tw2,
+            NVL (xxx.realisasi_spj_tw2, 0) AS realisasi_spj_tw2,
+            NVL (xxx.pengajuan_spj_tw3, 0) AS pengajuan_spj_tw3,
+            NVL (xxx.realisasi_spj_tw3, 0) AS realisasi_spj_tw3,
+            NVL (xxx.pengajuan_spj_tw4, 0) AS pengajuan_spj_tw4,
+            NVL (xxx.realisasi_spj_tw4, 0) AS realisasi_spj_tw4,
+            NVL (
+               (  xxx.pengajuan_spj_tw1
+                + xxx.pengajuan_spj_tw2
+                + xxx.pengajuan_spj_tw3
+                + xxx.pengajuan_spj_tw4),
+               0
+            )
+               AS pengajuan_spj,
+            NVL (
+               (  xxx.realisasi_spj_tw1
+                + xxx.realisasi_spj_tw2
+                + xxx.realisasi_spj_tw3
+                + xxx.realisasi_spj_tw4),
+               0
+            )
+               AS realisasi_spj,
+            NVL (
+               (  xxx.pengajuan_spj_tw1
+                + xxx.pengajuan_spj_tw2
+                + xxx.pengajuan_spj_tw3
+                + xxx.pengajuan_spj_tw4
+                + xxx.realisasi_spj_tw1
+                + xxx.realisasi_spj_tw2
+                + xxx.realisasi_spj_tw3
+                + xxx.realisasi_spj_tw4),
+               0
+            )
+               AS total_spj,
+            NVL (
+               (tmrkasblrinci.v_angg_rkas
+                - NVL (
+                     (  xxx.pengajuan_spj_tw1
+                      + xxx.pengajuan_spj_tw2
+                      + xxx.pengajuan_spj_tw3
+                      + xxx.pengajuan_spj_tw4
+                      + xxx.realisasi_spj_tw1
+                      + xxx.realisasi_spj_tw2
+                      + xxx.realisasi_spj_tw3
+                      + xxx.realisasi_spj_tw4),
+                     0
+                  )),
+               0
+            )
+               AS sisa_rkas
+     FROM                  tmrkasblrinci
+                        INNER JOIN
+                           tmrkaskegiatan
+                        ON (tmrkasblrinci.i_idkegiatan = tmrkaskegiatan.i_id)
+                           AND tmrkasblrinci.c_angg_sumbdana &lt;&gt; '1'
+                     INNER JOIN
+                        trbas
+                     ON tmrkasblrinci.i_idbas = trbas.i_id
+                  INNER JOIN
+                     trkategorikomponen
+                  ON (tmrkasblrinci.i_idkomponen = trkategorikomponen.i_id)
+               INNER JOIN
+                  trsekolah
+               ON (trsekolah.i_id = tmrkasblrinci.i_idsekolah)
+            LEFT JOIN
+               (                                           -- 1. BOP draft  --
+                SELECT     i_idblrinci,
+                           SUM (pengajuan_spj_tw1) AS pengajuan_spj_tw1,
+                           NVL (SUM (realisasi_spj_tw1), 0)
+                              AS realisasi_spj_tw1,
+                           NVL (SUM (pengajuan_spj_tw2), 0)
+                              AS pengajuan_spj_tw2,
+                           NVL (SUM (realisasi_spj_tw2), 0)
+                              AS realisasi_spj_tw2,
+                           NVL (SUM (pengajuan_spj_tw3), 0)
+                              AS pengajuan_spj_tw3,
+                           NVL (SUM (realisasi_spj_tw3), 0)
+                              AS realisasi_spj_tw3,
+                           NVL (SUM (pengajuan_spj_tw4), 0)
+                              AS pengajuan_spj_tw4,
+                           NVL (SUM (realisasi_spj_tw4), 0)
+                              AS realisasi_spj_tw4
+                    FROM   (SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '1'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '2'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '3'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '4'
+                            UNION ALL
+                            -- 2. BOP REALISASI   --
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NOT NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '1'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NOT NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '2'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     0 AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NOT NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '3'
+                            UNION ALL
+                            SELECT   tmbkusBOPrinci.i_idblrinci,
+                                     0 AS pengajuan_spj_tw1,
+                                     0 AS realisasi_spj_tw1,
+                                     0 AS pengajuan_spj_tw2,
+                                     0 AS realisasi_spj_tw2,
+                                     0 AS pengajuan_spj_tw3,
+                                     0 AS realisasi_spj_tw3,
+                                     0 AS pengajuan_spj_tw4,
+                                     NVL (
+                                        tmbkusBOPrinci.v_kas_keluar
+                                        - tmbkusBOPrinci.v_kas_terima,
+                                        0
+                                     )
+                                        AS realisasi_spj_tw4
+                              FROM      tmbkusBOP
+                                     INNER JOIN
+                                        tmbkusBOPrinci
+                                     ON (tmbkusBOP.i_id =
+                                            tmbkusBOPrinci.i_idbkuBOP)
+                                        AND tmbkusBOP.c_trx = 'JJ'
+                                        AND tmbkusBOP.d_posting IS NOT NULL
+                                        AND tmbkusBOP.c_angg_triwulan = '4')
+                           zzz
+                GROUP BY   i_idblrinci) xxx
+            ON xxx.i_idblrinci = tmrkasblrinci.i_id
+            ) where npsn = #{npsn} and tahun = #{tahun}
+            group by idGIATRKAS,tahun,npsn, namaSEKOLAH,kodeGIAT,namaGIAT,kodeREKENING,namaREKENING
+            order by kodeREKENING
+            )
+    </select>
+    
+    
+    
+</mapper>

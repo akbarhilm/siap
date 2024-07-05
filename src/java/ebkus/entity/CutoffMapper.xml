@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.CutoffMapper">
+
+    <select id="getListHariLibur" parameterType="java.util.Map"  resultType="ebkus.model.Cutoff">
+        SELECT rn AS no, id, tahun, waktu, keterangan
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT i_id as id, c_angg_tahun as tahun, d_tgl as waktu, e_rmks as keterangan
+        FROM TRTRANSFERLIBUR
+        WHERE c_angg_tahun = #{tahun})
+        a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakListHariLibur" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   count(*) FROM  TRTRANSFERLIBUR
+        WHERE c_angg_tahun = #{tahun}
+    </select>
+    <insert id="insertHariLibur" parameterType="ebkus.model.Cutoff"  >
+        INSERT INTO TRTRANSFERLIBUR (
+        I_ID,
+        C_ANGG_TAHUN,
+        D_TGL,
+        E_RMKS,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        #{id},
+        #{tahun},
+        #{waktu},
+        #{keterangan},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    <update id="updateHariLibur" parameterType="ebkus.model.Cutoff"   >
+        UPDATE TRTRANSFERLIBUR
+        SET
+        C_ANGG_TAHUN = #{tahun},
+        D_TGL = #{waktu},
+        E_RMKS = #{keterangan},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{id}
+    </update>
+    <delete id="deleteHariLibur" parameterType="ebkus.model.Cutoff"  >
+        DELETE TRTRANSFERLIBUR WHERE  I_ID = #{id}
+    </delete>
+    <select id="checkLibur" resultType="java.lang.Integer">
+        SELECT  count(*)
+        from  TRTRANSFERLIBUR
+        WHERE d_tgl = to_char(sysdate,'yyyymmdd')
+    </select>
+    <select id="getHariLibur" parameterType="java.util.Map"  resultType="ebkus.model.Cutoff">
+        SELECT  i_id as id, c_angg_tahun as tahun, d_tgl as waktu, e_rmks as keterangan
+        from  TRTRANSFERLIBUR
+        WHERE i_id = #{id}
+    </select>
+    <update id="updateWaktuCutoff" parameterType="ebkus.model.Cutoff"   >
+        UPDATE TRBANKPFK
+        SET
+        D_BANK_PAYMENT = #{waktu}
+        WHERE C_BANK_US = #{jenis}
+    </update>
+    <select id="getWaktuCutoff" parameterType="java.util.Map"  resultType="ebkus.model.Cutoff">
+        SELECT   TRBANKPFK   TRTRANSFERLIBUR
+        WHERE c_angg_tahun = #{tahun}
+    </select>
+</mapper>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.ModulMapper">
+    <select id="getListModul" parameterType="java.util.Map" resultType="ebkus.model.Modul" >
+        SELECT xxx.*
+        FROM (
+        SELECT ROWNUM AS rn
+        ,a.*
+        FROM (
+        SELECT T.I_ID as id , T.I_IDINDUK as idInduk, T.C_DETAIL as kodeDetail,
+        T.N_MODUL as namaModul, T.N_MODUL_LINK as namaModulLink, T.I_MODUL_NO AS noModul,
+        T.E_MODUL as keterangan, T.C_AKTIF as kodeAktif, T.I_PGUN_REKAM as idPgunRekam,
+        T.D_PGUN_REKAM as tglPgunRekam, T.I_PGUN_UBAH as idPgunUbah, T.D_PGUN_UBAH as tglPgunUbah
+        FROM TRBKUSMODUL T
+        <if test="namaModul != null and namaModul != '' ">
+            where upper( N_MODUL) like '%'||upper(#{namaModul})||'%'
+        </if>
+        ORDER BY T.I_MODUL_NO ASC
+        ) a
+        ) xxx
+
+        WHERE ROWNUM &lt;=  #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getBanyakListModul" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (I_ID) AS banyak FROM TRBKUSMODUL
+        <if test="namaModul != null and namaModul != '' ">
+            where upper( N_MODUL) like '%'||upper(#{namaModul})||'%'
+        </if>
+    </select>
+
+    <insert id="insertModul" parameterType="ebkus.model.Modul"    >
+        INSERT INTO TRBKUSMODUL (
+        I_ID, I_IDINDUK, C_DETAIL,
+        I_MODUL_NO, N_MODUL, N_MODUL_LINK,
+        E_MODUL, C_AKTIF,C_MODUL_SUPERADMIN,
+        C_MODUL_ADMIN,C_MODUL_SUDIN,C_MODUL_PA,
+        C_MODUL_PK,I_PGUN_REKAM,D_PGUN_REKAM)
+        VALUES (#{id} ,#{idInduk} ,#{kodeDetail} ,
+        #{noModul}, #{namaModul} ,#{namaModulLink} ,
+        #{keterangan},#{kodeAktif},#{modulSuperAdmin},
+        #{modulAdmin},#{modulSudin},#{modulPA},
+        #{modulPK},#{idPgunRekam} ,SYSDATE)
+    </insert>
+
+    <update id="updateModul" parameterType="ebkus.model.Modul"    >
+
+        UPDATE TRBKUSMODUL
+        SET    I_ID         = #{id},
+        I_IDINDUK    = #{idInduk},
+        C_DETAIL     = #{kodeDetail},
+        I_MODUL_NO      = #{noModul},
+        N_MODUL      = #{namaModul},
+        N_MODUL_LINK = #{namaModulLink},
+        E_MODUL      = #{keterangan},
+        C_AKTIF      = #{kodeAktif},
+        C_MODUL_SUPERADMIN = #{modulSuperAdmin} ,
+        C_MODUL_ADMIN =#{modulAdmin},
+        C_MODUL_SUDIN = #{modulSudin},
+        C_MODUL_PA =#{modulPA},
+        C_MODUL_PK =#{modulPK}   
+        I_PGUN_UBAH  = #{idPgunUbah},
+        D_PGUN_UBAH  = SYSDATE
+        WHERE  I_ID         = #{id}
+    </update>
+
+    <delete id="deleteModul" parameterType="java.lang.Integer" >
+        DELETE FROM TRBKUSMODUL WHERE I_ID = #{id}
+    </delete>
+
+    <select id="getModulById" parameterType="java.lang.Integer"  resultType="ebkus.model.Modul">
+        SELECT T.I_ID as id , T.I_IDINDUK as idInduk, T.C_DETAIL as kodeDetail,
+        T.I_MODUL_NO AS noModul, T.N_MODUL as namaModul, T.N_MODUL_LINK as namaModulLink,
+        T.E_MODUL as keterangan, T.C_AKTIF as kodeAktif, T.I_PGUN_REKAM as idPgunRekam,
+        T.D_PGUN_REKAM as tglPgunRekam, T.I_PGUN_UBAH as idPgunUbah, T.D_PGUN_UBAH as tglPgunUbah
+        FROM TRBKUSMODUL T where T.I_ID = #{id}
+    </select>
+
+    <select id="getBanyakListModulByIdInduk" parameterType="java.lang.Integer"  resultType="java.lang.Integer">
+        SELECT COUNT (I_ID) AS banyak FROM TRBKUSMODUL WHERE I_IDINDUK = #{id}
+    </select>
+
+</mapper>

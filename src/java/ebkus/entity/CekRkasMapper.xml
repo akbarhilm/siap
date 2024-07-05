@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.CekRkasMapper">
+
+    <select id="getDuplikat" parameterType="java.util.Map"  resultType="ebkus.model.CekDuplikat">
+        SELECT rn AS no, tahun, kodeUnit, idGiat, kodeBidang,
+        kodeGiat, namaGiat, pagu
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT tahun, npsn as kodeUnit, id_giat as idGiat, kode_bidang as kodeBidang,
+        kode_giat as kodeGiat, nama_giat as namaGiat, nilai_pagu as pagu
+        FROM belanja
+        WHERE (tahun || npsn || kode_giat) IN (
+        SELECT tahun || npsn || kode_giat
+        FROM (SELECT   tahun, npsn, kode_giat,
+        COUNT (*) AS jumlah_record
+        FROM belanja
+        WHERE tahun = #{tahun} AND nilai_pagu &lt;&gt; 0
+        GROUP BY tahun, npsn, kode_giat
+        HAVING COUNT (*) &gt; 1))) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+    <select id="getGiatRinci" parameterType="java.util.Map"  resultType="ebkus.model.CekGiatRinci">
+
+        SELECT rn AS no, to_char(tahun) as tahun, to_char(kodeUnit) as kodeUnit, idGiat, paguGiat, sumGiatRinci, selisih
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT   tahun, kodeUnit, idgiat, SUM (pagu) AS pagugiat,
+        SUM (total_rinci) AS sumgiatrinci,
+        SUM (pagu - total_rinci) AS selisih
+        FROM (SELECT tahun, npsn as kodeunit, kode_giat as idgiat, nilai_pagu as pagu, 0 total_rinci
+        FROM belanja
+        WHERE tahun = #{tahun} AND nilai_pagu &gt; 0
+        UNION ALL
+        SELECT tahun, npsn as kodeunit, kode_giat as idgiat, 0 pagu, nilai_rincian as total_rinci
+        FROM belanjarinci
+        WHERE tahun = #{tahun} AND nilai_rincian &gt; 0)
+        GROUP BY tahun, kodeunit, idgiat
+        HAVING SUM (pagu - total_rinci) &lt;&gt; 0) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getGiatAkb" parameterType="java.util.Map"  resultType="ebkus.model.CekGiatAkb">
+
+        SELECT rn AS no, to_char(tahun) as tahun, kodeUnit, idGiat, paguGiat, sumGiatAkb, selisih
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT   tahun, kodeunit AS kodeUnit, idgiat AS idGiat, SUM (pagu) AS paguGiat,
+        SUM (total_AKB) AS sumGiatAkb,
+        SUM (pagu - TOTAL_AKB) AS selisih
+        FROM (SELECT tahun, npsn as kodeunit, kode_giat as idgiat, nilai_pagu as pagu, 0 total_AKB
+        FROM belanja
+        WHERE tahun = #{tahun} AND nilai_pagu &gt; 0
+        UNION ALL
+        SELECT tahun, npsn as kodeunit, kode_giat as idgiat, 0 pagu,
+        (BULAN1 + BULAN2 + BULAN3 + BULAN4 + BULAN5 + BULAN6 + BULAN7 + BULAN8 + BULAN9 + BULAN10 + BULAN11 + BULAN12 ) AS
+        total_AKB
+        FROM belanjarinciakb
+        WHERE tahun = #{tahun} )
+        GROUP BY tahun, kodeunit, idgiat
+        HAVING SUM (pagu - total_AKB) &lt;&gt; 0) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakDuplikat" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        SELECT tahun, npsn as kodeUnit, id_giat as idGiat, kode_bidang as kodeBidang,
+        kode_giat as kodeGiat, nama_giat as namaGiat, nilai_pagu as pagu
+        FROM belanja
+        WHERE (tahun || npsn || kode_giat) IN (
+        SELECT tahun || npsn || kode_giat
+        FROM (SELECT   tahun, npsn, kode_giat,
+        COUNT (*) AS jumlah_record
+        FROM belanja
+        WHERE tahun = #{tahun} AND nilai_pagu &lt;&gt; 0
+        GROUP BY tahun, npsn, kode_giat
+        HAVING COUNT (*) &gt; 1)))
+    </select>
+    <select id="getBanyakGiatRinci2" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        SELECT   tahun, kodeUnit, idgiat, SUM (pagu) AS pagugiat,
+        SUM (total_rinci) AS sumgiatrinci,
+        SUM (pagu - total_rinci) AS selisih
+        FROM (SELECT  tahun, npsn as kodeunit, kode_giat as idgiat, nilai_pagu as pagu, 0 total_rinci
+        FROM belanja
+        WHERE tahun = #{tahun} AND nilai_pagu &gt; 0
+        UNION ALL
+        SELECT TO_NUMBER(tahun), npsn as kodeunit, kode_giat as idgiat, 0 pagu, nilai_rincian as total_rinci
+        FROM belanjarincikomponen
+        WHERE tahun = #{tahun} AND nilai_rincian &gt; 0)
+        GROUP BY tahun, kodeunit, idgiat
+        HAVING SUM (pagu - total_rinci) &lt;&gt; 0)
+    </select>
+    <select id="getBanyakGiatRinci" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        SELECT   tahun, kodeUnit, idgiat, SUM (pagu) AS pagugiat,
+        SUM (total_rinci) AS sumgiatrinci,
+        SUM (pagu - total_rinci) AS selisih
+        FROM (SELECT tahun, npsn as kodeunit, kode_giat as idgiat, nilai_pagu as pagu, 0 total_rinci
+        FROM belanja
+        WHERE tahun = #{tahun} AND nilai_pagu &gt; 0
+        UNION ALL
+        SELECT tahun, npsn as kodeunit, kode_giat as idgiat, 0 pagu, nilai_rincian as total_rinci
+        FROM belanjarinci
+        WHERE tahun = #{tahun} AND nilai_rincian &gt; 0)
+        GROUP BY tahun, kodeunit, idgiat
+        HAVING SUM (pagu - total_rinci) &lt;&gt; 0)
+    </select>
+    <select id="getBanyakGiatAkb" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        SELECT   tahun, kodeunit AS kodeUnit, idgiat AS idGiat, SUM (pagu) AS paguGiat,
+        SUM (total_AKB) AS sumGiatAkb,
+        SUM (pagu - TOTAL_AKB) AS selisih
+        FROM (SELECT tahun, npsn as kodeunit, id_giat as idgiat, nilai_pagu as pagu, 0 total_AKB
+        FROM belanja
+        WHERE tahun = #{tahun} AND nilai_pagu &gt; 0
+        UNION ALL
+        SELECT tahun, npsn as kodeunit, id_giat as idgiat, 0 pagu,
+        (BULAN1 + BULAN2 + BULAN3 + BULAN4 + BULAN5 + BULAN6 + BULAN7 + BULAN8 + BULAN9 + BULAN10 + BULAN11 + BULAN12 ) AS
+        total_AKB
+        FROM belanjarinciakb
+        WHERE tahun = #{tahun} )
+        GROUP BY tahun, kodeunit, idgiat
+        HAVING SUM (pagu - total_AKB) &lt;&gt; 0)
+    </select>
+
+
+</mapper>

@@ -1,0 +1,424 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.BatalTransferBosMapper">
+
+
+    <select id="getListPembatalan" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT idBku, tahun, triwulan, noBkuMohon, kodeKeg,
+        namakeg, nilaiKeluar, nilaiPajak, nilaiSpjNetto, kodeRetur, idBaBatal
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT   b.i_id AS idbku, b.c_angg_tahun AS tahun,
+        b.c_angg_triwulan AS triwulan, b.i_bkuno_mohon AS nobkumohon,
+        k.c_kegiatan AS kodekeg, k.n_kegiatan AS namakeg,
+        SUM (r.v_kas_keluar) AS nilaikeluar,
+        SUM (r.v_spj_pajak) AS nilaipajak,
+        SUM (r.v_spj_netto) AS nilaispjnetto, b.c_bku_retur as kodeRetur, nvl(t.i_id, 0) as idBaBatal
+        FROM tmbkusbos b INNER JOIN tmbkusbosrinci r ON b.i_id = r.i_idbkubos
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        LEFT JOIN tmbkusbabatal t
+        ON b.i_idsekolah = t.i_idsekolah
+        and b.i_bkuno_mohon = t.i_bkuno_mohon
+        and b.c_angg_tahun = t.c_angg_tahun
+        AND t.c_angg_sumbdana = '1'
+        WHERE b.c_angg_tahun = #{tahun}
+        AND b.c_trx = #{kodetransaksi}
+        AND b.c_bku_koreksi = '0'
+        and R.V_KAS_KELUAR > 0
+        <if test="kodeotor == 2 ">
+            AND b.c_bku_retur in (#{dari},#{ke})
+        </if>
+        <if test="kodeotor == 1 ">
+            AND b.c_bku_retur in (#{dari}, #{ke})
+        </if>
+        <if test="kodeotor == 0 ">
+            AND b.c_bku_retur in (#{dari})
+        </if>
+        AND b.i_idsekolah = #{idsekolah}
+        AND b.i_bkuno != 0
+        AND b.c_bku_tutup != '2'
+        AND d_posting IS NOT NULL
+        AND b.c_angg_triwulan = #{triwulan}
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        GROUP BY b.i_id,
+        b.c_angg_tahun,
+        b.c_angg_triwulan,
+        b.i_bkuno_mohon,
+        k.c_kegiatan,
+        k.n_kegiatan,
+        b.c_bku_retur, t.i_id
+        ORDER BY b.i_bkuno_mohon
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakListPembatalan" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak
+        FROM (
+        SELECT   b.i_id AS idbku, b.c_angg_tahun AS tahun,
+        b.c_angg_triwulan AS triwulan, b.i_bkuno_mohon AS nobkumohon,
+        k.c_kegiatan AS kodekeg, k.n_kegiatan AS namakeg,
+        SUM (r.v_kas_keluar) AS nilaikeluar,
+        SUM (r.v_spj_pajak) AS nilaipajak,
+        SUM (r.v_spj_netto) AS nilaispjnetto
+        FROM tmbkusbos b INNER JOIN tmbkusbosrinci r ON b.i_id = r.i_idbkubos
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        LEFT JOIN tmbkusbabatal t
+        ON b.i_idsekolah = t.i_idsekolah
+        and b.i_bkuno_mohon = t.i_bkuno_mohon
+        and b.c_angg_tahun = t.c_angg_tahun
+        AND t.c_angg_sumbdana = '1'
+        WHERE b.c_angg_tahun = #{tahun}
+        AND b.c_trx = #{kodetransaksi}
+        AND b.c_bku_koreksi = '0'
+        and R.V_KAS_KELUAR > 0
+        <if test="kodeotor == 2 ">
+            AND b.c_bku_retur in (#{dari},#{ke})
+        </if>
+        <if test="kodeotor == 1 ">
+            AND b.c_bku_retur in (#{dari}, #{ke})
+        </if>
+        <if test="kodeotor == 0 ">
+            AND b.c_bku_retur in (#{dari})
+        </if>
+        AND b.i_idsekolah = #{idsekolah}
+        AND b.i_bkuno != 0
+        AND d_posting IS NOT NULL
+        AND b.c_bku_tutup != '2'
+        AND b.c_angg_triwulan = #{triwulan}
+
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        GROUP BY b.i_id,
+        b.c_angg_tahun,
+        b.c_angg_triwulan,
+        b.i_bkuno_mohon,
+        k.c_kegiatan,
+        k.n_kegiatan
+        ORDER BY b.i_bkuno_mohon
+
+        )
+    </select>
+    <select id="getListPembatalanPajak" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        SELECT idBku, tahun, triwulan, noBkuMohon, noBkuRef, noBkuSpj, noBukti, kodeKeg,
+        namakeg, uraianBukti, nilaiKeluar, kodeRetur, idBaBatal
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        SELECT   b.i_id AS idbku, b.c_angg_tahun AS tahun,
+        b.c_angg_triwulan AS triwulan, b.i_bkuno_mohon AS nobkumohon, i_bkuno_ref as noBkuRef,
+        (select i_bkuno_ref from tmbkusbos where i_idsekolah = #{idsekolah} and c_angg_tahun = #{tahun}
+        and i_bkuno_mohon = b.i_bkuno_ref) as noBkuSpj, i_doc_bukti as noBukti,
+        k.c_kegiatan AS kodekeg, k.n_kegiatan AS namakeg, e_doc_bukti as uraianBukti,
+        SUM (r.v_kas_keluar) AS nilaikeluar, b.c_bku_retur as kodeRetur, nvl(t.i_id, 0) as idBaBatal
+        FROM tmbkusbos b INNER JOIN tmbkusbosrinci r ON b.i_id = r.i_idbkubos
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        LEFT JOIN tmbkusbabatal t
+        ON b.i_idsekolah = t.i_idsekolah
+        and b.i_bkuno_mohon = t.i_bkuno_mohon
+        and b.c_angg_tahun = t.c_angg_tahun
+        AND t.c_angg_sumbdana = '1'
+        WHERE b.c_angg_tahun = #{tahun}
+        AND b.c_trx = #{kodetransaksi}
+        AND b.c_bku_koreksi = '0'
+        and R.V_KAS_KELUAR > 0
+        <if test="kodeotor == 2 ">
+            AND b.c_bku_retur in (#{dari},#{ke})
+        </if>
+        <if test="kodeotor == 1 ">
+            AND b.c_bku_retur in (#{dari}, #{ke})
+        </if>
+        <if test="kodeotor == 0 ">
+            AND b.c_bku_retur in (#{dari})
+        </if>
+        AND b.c_bku_tutup != '2'
+        AND b.i_idsekolah = #{idsekolah}
+        AND b.i_bkuno != 0
+        AND d_posting IS NOT NULL
+        AND b.c_angg_triwulan = #{triwulan}
+        AND r.v_kas_keluar &gt; 0
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        GROUP BY b.i_id,
+        b.c_angg_tahun,
+        b.c_angg_triwulan,
+        b.i_bkuno_mohon,
+        b.i_bkuno_ref,
+        b.i_doc_bukti,
+        k.c_kegiatan,
+        k.n_kegiatan,
+        b.e_doc_bukti,
+        b.c_bku_retur,
+        t.i_id
+        ORDER BY b.i_bkuno_mohon
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakListPembatalanPajak" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS banyak
+        FROM (
+        SELECT   b.i_id AS idbku, b.c_angg_tahun AS tahun,
+        b.c_angg_triwulan AS triwulan, b.i_bkuno_mohon AS nobkumohon, i_doc_bukti as noBukti,
+        k.c_kegiatan AS kodekeg, k.n_kegiatan AS namakeg, e_doc_bukti as uraianBukti,
+        SUM (r.v_kas_keluar) AS nilaikeluar, b.c_bku_retur as kodeRetur
+        FROM tmbkusbos b INNER JOIN tmbkusbosrinci r ON b.i_id = r.i_idbkubos
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        LEFT JOIN tmbkusbabatal t
+        ON b.i_idsekolah = t.i_idsekolah
+        and b.i_bkuno_mohon = t.i_bkuno_mohon
+        and b.c_angg_tahun = t.c_angg_tahun
+        AND t.c_angg_sumbdana = '1'
+        WHERE b.c_angg_tahun = #{tahun}
+        AND b.c_trx = #{kodetransaksi}
+        AND b.c_bku_koreksi = '0'
+        and R.V_KAS_KELUAR > 0
+        <if test="kodeotor == 2 ">
+            AND b.c_bku_retur in (#{dari},#{ke})
+        </if>
+        <if test="kodeotor == 1 ">
+            AND b.c_bku_retur in (#{dari}, #{ke})
+        </if>
+        <if test="kodeotor == 0 ">
+            AND b.c_bku_retur in (#{dari})
+        </if>
+        AND b.c_bku_tutup != '2'
+        AND b.i_idsekolah = #{idsekolah}
+        AND b.i_bkuno != 0
+        AND d_posting IS NOT NULL
+        AND b.c_angg_triwulan = #{triwulan}
+        AND r.v_kas_keluar &gt; 0
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        GROUP BY b.i_id,
+        b.c_angg_tahun,
+        b.c_angg_triwulan,
+        b.i_bkuno_mohon,
+        b.i_doc_bukti,
+        k.c_kegiatan,
+        k.n_kegiatan,
+        b.e_doc_bukti,
+        b.c_bku_retur
+        ORDER BY b.i_bkuno_mohon
+        )
+    </select>
+    <select id="getTotalNilai" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select nvl(sum(nilaikeluar),0) as nilaiKeluar, nvl(sum(nilaipajak),0) as nilaiPajak, nvl(sum(nilaispjnetto),0) as nilaiSpjNetto from (
+        SELECT
+        SUM (r.v_kas_keluar) AS nilaikeluar,
+        SUM (r.v_spj_pajak) AS nilaipajak,
+        SUM (r.v_spj_netto) AS nilaispjnetto
+        FROM tmbkusbos b INNER JOIN tmbkusbosrinci r ON b.i_id = r.i_idbkubos
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx = #{kodetransaksi}
+        AND b.c_bku_koreksi = '0'
+        <if test="kodeotor == 2 ">
+            AND b.c_bku_retur in (#{dari},#{ke},'3')
+        </if>
+        <if test="kodeotor == 1 ">
+            AND b.c_bku_retur in (#{dari}, #{ke})
+        </if>
+        <if test="kodeotor == 0 ">
+            AND b.c_bku_retur in (#{dari})
+        </if>
+        AND b.i_idsekolah = #{idsekolah}
+        AND b.i_bkuno != 0
+        AND b.c_bku_tutup != '2'
+        AND d_posting IS NOT NULL
+        AND b.c_angg_triwulan = #{triwulan}
+        GROUP BY b.i_id,
+        b.c_angg_tahun,
+        b.c_angg_triwulan,
+        b.i_bkuno_mohon,
+        k.c_kegiatan,
+        k.n_kegiatan
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        ORDER BY b.i_bkuno_mohon
+        )
+    </select>
+    <select id="getTotalNilaiPajak" parameterType="java.util.Map" resultType="ebkus.model.BukuKasUmum">
+        select nvl(sum(nilaikeluar),0) as nilaiKeluar
+        from (
+        SELECT
+        SUM (r.v_kas_keluar) AS nilaikeluar
+        FROM tmbkusbos b INNER JOIN tmbkusbosrinci r ON b.i_id = r.i_idbkubos
+        INNER JOIN trsekolah s ON b.i_idsekolah = s.i_id
+        LEFT JOIN tmrkaskegiatan k ON b.i_idkegiatan = k.i_id
+        WHERE b.c_angg_tahun = #{tahun}
+        AND c_trx = #{kodetransaksi}
+        AND b.c_bku_koreksi = '0'
+        <if test="kodeotor == 2 ">
+            AND b.c_bku_retur in (#{dari},#{ke},'3')
+        </if>
+        <if test="kodeotor == 1 ">
+            AND b.c_bku_retur in (#{dari}, #{ke})
+        </if>
+        <if test="kodeotor == 0 ">
+            AND b.c_bku_retur in (#{dari})
+        </if>
+        AND b.i_idsekolah = #{idsekolah}
+        AND b.i_bkuno != 0
+        AND b.c_bku_tutup != '2'
+        AND d_posting IS NOT NULL
+        AND b.c_angg_triwulan = #{triwulan}
+        AND r.v_kas_keluar &gt; 0
+        GROUP BY b.i_id,
+        b.c_angg_tahun,
+        b.c_angg_triwulan,
+        b.i_bkuno_mohon,
+        k.c_kegiatan,
+        k.n_kegiatan
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(k.c_kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(k.n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        ORDER BY b.i_bkuno_mohon
+        )
+    </select>
+    <update id="pengajuanBatal" parameterType="java.util.Map"   >
+        UPDATE TMBKUSBOS
+        SET
+        C_BKU_RETUR = #{ke},
+        I_PGUN_UBAH = #{id},
+        D_PGUN_UBAH = sysdate
+        WHERE c_angg_tahun = #{tahun}
+        AND c_trx IN ('JJ', 'P1', 'P2', 'P3', 'P4', 'P5', 'ST', 'RT')
+        AND c_bku_koreksi = '0'
+        AND c_bku_tutup != '2'
+        <if test="kodeotor == 2 ">
+            AND c_bku_retur in (#{dari},'3')
+        </if>
+        <if test="kodeotor != 2 ">
+            AND c_bku_retur = #{dari}
+        </if>
+        AND i_idsekolah = #{idsekolah}
+        AND i_bkuno != 0
+        AND d_posting IS NOT NULL
+        AND c_angg_triwulan = #{triwulan}
+        <if test="noBkuMohon != null and noBkuMohon != '' ">
+            AND (i_bkuno_mohon = #{noBkuMohon}
+            OR i_bkuno_ref = #{noBkuMohon})
+        </if>
+    </update>
+    <update id="prosesPembatalan" parameterType="java.util.Map"   >
+        UPDATE TMBKUSBOS
+        SET
+        D_POSTING = null,
+        I_BKUNO = '0',
+        C_BKU_TUTUP = '0',
+        C_BKU_RETUR = #{ke},
+        <if test="ke == '3' and kodetransaksi == 'JJ'">
+            C_BKU_BATALTF = C_BKU_BATALTF + 1,
+        </if>
+        I_PGUN_UBAH = TO_NUMBER(#{id}),
+        D_PGUN_UBAH = sysdate
+        WHERE c_angg_tahun = #{tahun}
+        AND c_trx = #{kodetransaksi}
+        AND c_bku_koreksi = '0'
+        AND c_bku_retur = #{dari}
+        AND i_idsekolah = #{idsekolah}
+        AND i_bkuno != 0
+        AND c_bku_tutup != '2'
+        AND d_posting IS NOT NULL
+        AND c_angg_triwulan = #{triwulan}
+        <if test="noBkuMohon != null and noBkuMohon != '' ">
+            AND i_bkuno_mohon = #{noBkuMohon}
+        </if>
+
+    </update>
+    <update id="prosesPembatalanPajak" parameterType="java.util.Map"   >
+        UPDATE TMBKUSBOS
+        SET
+        C_BKU_RETUR = #{ke},
+        D_POSTING = null,
+        I_BKUNO = '0',
+        <if test="pajakPengeluaran != null and pajakPengeluaran != '' ">
+            C_BKU_TUTUP = '0',
+        </if>
+        <if test="ke == '3'">
+            C_BKU_BATALTF = C_BKU_BATALTF + 1,
+        </if>
+        I_PGUN_UBAH = TO_NUMBER(#{id}),
+        D_PGUN_UBAH = sysdate
+        WHERE c_angg_tahun = #{tahun}
+        AND c_trx LIKE 'P%'
+        AND c_bku_koreksi = '0'
+        AND c_bku_retur = #{dari}
+        AND i_idsekolah = #{idsekolah}
+        AND i_bkuno != 0
+        AND c_bku_tutup != '2'
+        AND d_posting IS NOT NULL
+        AND c_angg_triwulan = #{triwulan}
+        <if test="noBkuMohon != null and noBkuMohon != '' and (pajakPengeluaran == null or pajakPengeluaran == '')">
+            AND i_bkuno_ref = #{noBkuMohon}
+        </if>
+        <if test="pajakPengeluaran != null and pajakPengeluaran != '' ">
+            AND i_bkuno_mohon = #{noBkuMohon}
+        </if>
+    </update>
+    <update id="prosesPembatalanBank" parameterType="java.util.Map"   >
+        UPDATE TMBKUSBANK
+        SET
+        e_msg_terimabank = '99 - Retur Manual',
+        c_bank_status = 9
+        WHERE c_angg_tahun = #{tahun}
+        AND c_angg_sumbdana = '1'
+        AND c_bank_status = '1'
+        AND i_idbku IN
+        (SELECT i_id FROM tmbkusbos
+        WHERE c_angg_tahun = #{tahun}
+        AND i_idsekolah = #{idsekolah}
+        <if test="noBkuMohon != null and noBkuMohon != '' ">
+            AND i_bkuno_mohon = #{noBkuMohon}
+        </if>
+        )
+    </update>
+    <update id="approveBa" parameterType="java.util.Map"   >
+        UPDATE TMBKUSBABATAL
+        SET
+        c_baapprove = 1
+        WHERE i_id = #{idba}
+    </update>
+    <select id="getPajakPengeluaran" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT (*)
+        FROM (SELECT i_bkuno_mohon
+        FROM tmbkusbos
+        WHERE i_idsekolah = #{idsekolah}
+        AND c_angg_tahun = #{tahun}
+        AND c_angg_triwulan = #{triwulan}
+        AND i_bkuno_ref = #{noBkuMohon}
+        AND c_bku_tutup != '2'
+        AND c_trx LIKE 'P%'
+        ) a, tmbkusbos b WHERE a.i_bkuno_mohon = b.i_bkuno_ref AND c_angg_tahun = #{tahun}
+        AND c_angg_triwulan = #{triwulan}
+        AND c_bku_tutup != '2'
+        AND c_trx LIKE 'P%'
+        AND b.i_idsekolah = #{idsekolah}
+    </select>
+</mapper>

@@ -1,0 +1,6 @@
+http://10.1.94.68:8080/TERIMA/halamanterimadata/json/terimapostdata
+https://soadki.jakarta.go.id/inquiryoffus|siapprod|siapprod
+https://soadev.jakarta.go.id/inquiryoffus|siapdev|siapdev
+http://10.1.94.68:8080/TERIMA/halamanterimadata/json/terimapostdata
+http://10.100.111.152:9876/getResponseEbku
+http://10.100.111.153:9876/getResponseEbku

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.MonitoringAkbBkuPerTriwulanMapper">
+
+    <select id="getListIndex" parameterType="java.util.Map" resultType="ebkus.model.MonitoringAkbBkuPerTriwulan">
+        SELECT ROWNUM as noUrut, c_Kegiatan as kodeKegiatan, n_kegiatan as namaKegiatan,
+        c_akun as kodeAkun,n_akun as namaAkun, v_rpa as nilaiAkb,
+        v_bkus as nilaiPengajuanBku,selisih as selisih
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        select xxx.c_angg_tahun, xxx.i_idsekolah, xxx.i_idkegiatan,
+        xxx.i_idbas,c_Kegiatan, n_kegiatan, c_akun , n_akun,
+        sum (xxx.v_rpa) as  v_rpa,
+        sum( xxx.v_kas_keluar) as v_bkus,sum (xxx.v_rpa - xxx.v_kas_keluar)  selisih
+
+        from
+        (
+        SELECT tmrkasbl.c_angg_tahun, tmrkasbl.i_idsekolah, tmrkasbl.i_idkegiatan,
+        tmrkasbl.i_idbas,
+        (
+        <choose>
+            <when test="triwulan == 1 ">
+                tmrkasbl.v_rpa_bulan01 + tmrkasbl.v_rpa_bulan02 + tmrkasbl.v_rpa_bulan03
+            </when>
+            <when test="triwulan == 2 ">
+                tmrkasbl.v_rpa_bulan04 + tmrkasbl.v_rpa_bulan05 + tmrkasbl.v_rpa_bulan06
+            </when>
+            <when test="triwulan == 3 ">
+                tmrkasbl.v_rpa_bulan07 + tmrkasbl.v_rpa_bulan08 + tmrkasbl.v_rpa_bulan09
+            </when>
+            <when test="triwulan == 4 ">
+                tmrkasbl.v_rpa_bulan10 + tmrkasbl.v_rpa_bulan11 + tmrkasbl.v_rpa_bulan12
+            </when>
+            <otherwise> 0 </otherwise>
+        </choose>
+        ) v_rpa,
+        0 as v_kas_keluar
+        FROM tmrkasbl
+        WHERE tmrkasbl.c_angg_tahun = #{tahun} AND tmrkasbl.c_angg_sumbdana &lt;&gt; '1'
+        UNION ALL
+        SELECT tmbkusbop.c_angg_tahun, tmbkusbop.i_idsekolah, tmbkusbop.i_idkegiatan,
+        tmbkusboprinci.i_idbas, 0 AS v_rpa, tmbkusboprinci.v_kas_keluar
+        FROM tmbkusbop, tmbkusboprinci
+        WHERE ((tmbkusbop.i_id = tmbkusboprinci.i_idbkubop))
+        AND tmbkusbop.c_angg_tahun = #{tahun}
+        <!-- AND tmbkusbop.c_angg_sumbdana &lt;&gt; '1' -->
+        AND tmbkusbop.c_angg_triwulan = #{triwulan}
+        and c_trx = 'JJ'
+        ) xxx , tmrkaskegiatan, trbas
+        where xxx.i_idsekolah = #{idsekolah}
+        and xxx.i_idkegiatan = tmrkaskegiatan.i_id
+        and xxx.i_idbas = trbas.i_id
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(c_Kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        <if test="kodeAkunFilter != null and kodeAkunFilter != '' ">
+            and upper(c_akun) like '%'||upper(#{kodeAkunFilter})||'%'
+        </if>
+        <if test="namaAkunFilter != null and namaAkunFilter != '' ">
+            and upper(n_akun) like '%'||upper(#{namaAkunFilter})||'%'
+        </if>
+        group by xxx.c_angg_tahun, xxx.i_idsekolah, xxx.i_idkegiatan,
+        xxx.i_idbas,c_Kegiatan, n_kegiatan, c_akun , n_akun
+        having sum (xxx.v_rpa) &gt; 0
+        <if test="selisihFilter != null and selisihFilter != '' and selisihFilter == -1 ">
+            and sum (xxx.v_rpa - xxx.v_kas_keluar) &lt; 0
+        </if>
+        <if test="selisihFilter != null and selisihFilter != '' and selisihFilter == 0 ">
+            and sum (xxx.v_rpa - xxx.v_kas_keluar) = 0
+        </if>
+        <if test="selisihFilter != null and selisihFilter != '' and selisihFilter == 1 ">
+            and sum (xxx.v_rpa - xxx.v_kas_keluar) &gt; 0
+        </if>
+        order by c_kegiatan, c_akun
+        )
+        a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListIndex" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select xxx.c_angg_tahun, xxx.i_idsekolah, xxx.i_idkegiatan,
+        xxx.i_idbas,c_Kegiatan, n_kegiatan, c_akun , n_akun,
+        sum (xxx.v_rpa) as  v_rpa,
+        sum( xxx.v_kas_keluar) as v_bkus,sum (xxx.v_rpa - xxx.v_kas_keluar)  selisih
+
+        from
+        (
+        SELECT tmrkasbl.c_angg_tahun, tmrkasbl.i_idsekolah, tmrkasbl.i_idkegiatan,
+        tmrkasbl.i_idbas,
+        (
+        <choose>
+            <when test="triwulan == 1 ">
+                tmrkasbl.v_rpa_bulan01 + tmrkasbl.v_rpa_bulan02 + tmrkasbl.v_rpa_bulan03
+            </when>
+            <when test="triwulan == 2 ">
+                tmrkasbl.v_rpa_bulan04 + tmrkasbl.v_rpa_bulan05 + tmrkasbl.v_rpa_bulan06
+            </when>
+            <when test="triwulan == 3 ">
+                tmrkasbl.v_rpa_bulan07 + tmrkasbl.v_rpa_bulan08 + tmrkasbl.v_rpa_bulan09
+            </when>
+            <when test="triwulan == 4 ">
+                tmrkasbl.v_rpa_bulan10 + tmrkasbl.v_rpa_bulan11 + tmrkasbl.v_rpa_bulan12
+            </when>
+            <otherwise> 0 </otherwise>
+        </choose>
+        ) v_rpa,
+        0 as v_kas_keluar
+        FROM tmrkasbl
+        WHERE tmrkasbl.c_angg_tahun = #{tahun} AND tmrkasbl.c_angg_sumbdana &lt;&gt; '1'
+        UNION ALL
+        SELECT tmbkusbop.c_angg_tahun, tmbkusbop.i_idsekolah, tmbkusbop.i_idkegiatan,
+        tmbkusboprinci.i_idbas, 0 AS v_rpa, tmbkusboprinci.v_kas_keluar
+        FROM tmbkusbop, tmbkusboprinci
+        WHERE ((tmbkusbop.i_id = tmbkusboprinci.i_idbkubop))
+        AND tmbkusbop.c_angg_tahun = #{tahun}
+        AND tmbkusbop.c_angg_sumbdana &lt;&gt; '1'
+        AND tmbkusbop.c_angg_triwulan = #{triwulan}
+        ) xxx , tmrkaskegiatan, trbas
+        where xxx.i_idsekolah = #{idsekolah}
+        and xxx.i_idkegiatan = tmrkaskegiatan.i_id
+        and xxx.i_idbas = trbas.i_id
+        <if test="kodeKegiatanFilter != null and kodeKegiatanFilter != '' ">
+            and upper(c_Kegiatan) like '%'||upper(#{kodeKegiatanFilter})||'%'
+        </if>
+        <if test="namaKegiatanFilter != null and namaKegiatanFilter != '' ">
+            and upper(n_kegiatan) like '%'||upper(#{namaKegiatanFilter})||'%'
+        </if>
+        <if test="kodeAkunFilter != null and kodeAkunFilter != '' ">
+            and upper(c_akun) like '%'||upper(#{kodeAkunFilter})||'%'
+        </if>
+        <if test="namaAkunFilter != null and namaAkunFilter != '' ">
+            and upper(n_akun) like '%'||upper(#{namaAkunFilter})||'%'
+        </if>
+        group by xxx.c_angg_tahun, xxx.i_idsekolah, xxx.i_idkegiatan,
+        xxx.i_idbas,c_Kegiatan, n_kegiatan, c_akun , n_akun
+        having sum (xxx.v_rpa) &gt; 0
+        <if test="selisihFilter != null and selisihFilter != '' and selisihFilter == -1 ">
+            and sum (xxx.v_rpa - xxx.v_kas_keluar) &lt; 0
+        </if>
+        <if test="selisihFilter != null and selisihFilter != '' and selisihFilter == 0 ">
+            and sum (xxx.v_rpa - xxx.v_kas_keluar) = 0
+        </if>
+        <if test="selisihFilter != null and selisihFilter != '' and selisihFilter == 1 ">
+            and sum (xxx.v_rpa - xxx.v_kas_keluar) &gt; 0
+        </if>
+        order by c_kegiatan, c_akun
+        )
+    </select>
+
+</mapper>

@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.ListSekolahMapper">
+
+    <select id="getBanyakAllSekolah" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   count(*) as banyak
+        FROM (SELECT    i_id as idSekolah,I_NPSN as npsn,N_Sekolah as namaSekolah,N_Sekolah_pendek as namaSekolahPendek
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   DISTINCT
+        trsekolah.i_id  ,
+        trsekolah.I_NPSN  ,
+        trsekolah.N_Sekolah,
+        trsekolah.N_Sekolah_pendek
+        FROM   trsekolah
+        WHERE  1=1 and C_AKTIF = 1
+        <if test="idskpd != null and idskpd != '' ">
+            and trsekolah.I_IDSKPD =#{idskpd}
+        </if>
+
+        <if test="namasekolah != null and namasekolah != '' ">
+            and upper(trsekolah.N_Sekolah) like '%'||upper(#{namasekolah})||'%'
+        </if>
+
+        <if test="npsn != null and npsn != '' ">
+            and upper(trsekolah.I_NPSN) like '%'||upper(#{npsn})||'%'
+        </if>
+
+        ORDER BY
+        i_npsn
+        ) a)
+        )
+    </select>
+
+    <select id="getAllSekolah" parameterType="java.util.Map"  resultType="ebkus.model.Sekolah">
+
+        SELECT    i_id as idSekolah,I_NPSN as npsn,N_Sekolah as namaSekolah,N_Sekolah_pendek as namaSekolahPendek, N_REK_BANKBOP as namaBOP, N_REK_BANKBOS as namaBOS, I_REK_BANKBOP as noBOP, I_REK_BANKBOS as noBOS
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   DISTINCT
+        trsekolah.i_id  ,
+        trsekolah.I_NPSN  ,
+        trsekolah.N_Sekolah,
+        trsekolah.N_Sekolah_pendek,
+        trsekolah.I_REK_BANKBOS,
+        trsekolah.I_REK_BANKBOP,
+        trsekolah.N_REK_BANKBOS,
+        trsekolah.N_REK_BANKBOP
+        FROM   trsekolah
+        WHERE  1=1 and C_AKTIF = 1
+        <if test="idskpd != null and idskpd != '' ">
+            and trsekolah.I_IDSKPD =#{idskpd}
+        </if>
+
+        <if test="namasekolah != null and namasekolah != '' ">
+            and upper(trsekolah.N_Sekolah) like '%'||upper(#{namasekolah})||'%'
+        </if>
+
+        <if test="npsn != null and npsn != '' ">
+            and upper(trsekolah.I_NPSN) like '%'||upper(#{npsn})||'%'
+        </if>
+
+        ORDER BY
+        i_npsn
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakAllSekolahPlt" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   count(*) as banyak
+        FROM (SELECT    i_id as idSekolah,I_NPSN as npsn,N_Sekolah as namaSekolah,N_Sekolah_pendek as namaSekolahPendek
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   DISTINCT
+        trsekolah.i_id  ,
+        trsekolah.I_NPSN  ,
+        trsekolah.N_Sekolah,
+        trsekolah.N_Sekolah_pendek
+        FROM   trsekolah
+        WHERE  1=1 and C_AKTIF = 1
+        and i_id = #{idsekolah}
+        <if test="namasekolah != null and namasekolah != '' ">
+            and upper(trsekolah.N_Sekolah) like '%'||upper(#{namasekolah})||'%'
+        </if>
+
+        <if test="npsn != null and npsn != '' ">
+            and upper(trsekolah.I_NPSN) like '%'||upper(#{npsn})||'%'
+        </if>
+        UNION ALL
+        SELECT   DISTINCT
+        s.i_id  ,
+        s.I_NPSN  ,
+        s.N_Sekolah,
+        s.N_Sekolah_pendek
+        FROM   trsekolah s, trbkuspenggunasekolah p
+        WHERE  1=1 and s.C_AKTIF = 1
+        and s.i_id = p.i_idsekolah
+        and p.i_idpengguna = #{idpengguna}
+        <if test="namasekolah != null and namasekolah != '' ">
+            and upper(s.N_Sekolah) like '%'||upper(#{namasekolah})||'%'
+        </if>
+
+        <if test="npsn != null and npsn != '' ">
+            and upper(s.I_NPSN) like '%'||upper(#{npsn})||'%'
+        </if>
+        ) a order by a.i_npsn)
+        )
+    </select>
+
+    <select id="getAllSekolahPlt" parameterType="java.util.Map"  resultType="ebkus.model.Sekolah">
+
+        SELECT    i_id as idSekolah,I_NPSN as npsn,N_Sekolah as namaSekolah,N_Sekolah_pendek as namaSekolahPendek, noBOP,noBOS, namaBOP,namaBOS
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   DISTINCT
+        trsekolah.i_id  ,
+        trsekolah.I_NPSN  ,
+        trsekolah.N_Sekolah,
+        trsekolah.N_Sekolah_pendek,
+        trsekolah.i_rek_bankbop as noBOP,
+        trsekolah.i_rek_bankbos as noBOS,
+        trsekolah.n_rek_bankbop as namaBOP,
+        trsekolah.n_rek_bankbos as namaBOS
+        FROM   trsekolah
+        WHERE  1=1 and C_AKTIF = 1
+        and i_id = #{idsekolah}
+        <if test="namasekolah != null and namasekolah != '' ">
+            and upper(trsekolah.N_Sekolah) like '%'||upper(#{namasekolah})||'%'
+        </if>
+
+        <if test="npsn != null and npsn != '' ">
+            and upper(trsekolah.I_NPSN) like '%'||upper(#{npsn})||'%'
+        </if>
+        UNION ALL
+        SELECT   DISTINCT
+        s.i_id  ,
+        s.I_NPSN  ,
+        s.N_Sekolah,
+        s.N_Sekolah_pendek,
+        s.i_rek_bankbop as noBOP,
+        s.i_rek_bankbos as noBOS,
+        s.n_rek_bankbop as namaBOP,
+        s.n_rek_bankbos as namaBOS
+        FROM   trsekolah s, trbkuspenggunasekolah p
+        WHERE  1=1 and s.C_AKTIF = 1
+        and s.i_id = p.i_idsekolah
+        and p.i_idpengguna = #{idpengguna}
+        <if test="namasekolah != null and namasekolah != '' ">
+            and upper(s.N_Sekolah) like '%'||upper(#{namasekolah})||'%'
+        </if>
+
+        <if test="npsn != null and npsn != '' ">
+            and upper(s.I_NPSN) like '%'||upper(#{npsn})||'%'
+        </if>
+        ) a order by a.i_npsn)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getSekolahById" parameterType="java.lang.Integer"  resultType="ebkus.model.Sekolah">
+
+        SELECT    i_id as idSekolah,I_NPSN as npsn,N_Sekolah as namaSekolah,N_Sekolah_pendek as namaSekolahPendek
+
+        FROM   (  SELECT   DISTINCT
+        trsekolah.i_id  ,
+        trsekolah.I_NPSN  ,
+        trsekolah.N_Sekolah,
+        trsekolah.N_Sekolah_pendek
+        FROM   trsekolah
+        WHERE  i_id =#{id})
+
+    </select>
+</mapper>

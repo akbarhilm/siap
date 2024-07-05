@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.RefBasTrxMapper">
+    <select id="getListBasTrx" parameterType="java.util.Map" resultType="ebkus.model.RefBasTrx" >         
+        SELECT  
+        keterangan as keterangan,
+        koderekening as kodeRek,
+        uraian as uraian
+        FROM( 
+        SELECT   ROWNUM AS rn, a.*
+        FROM   (
+SELECT DISTINCT 'GIATRINCI' AS keterangan, koderekening, subrincian as uraian
+        FROM d_giatrinci
+        WHERE     tahun = #{tahun}
+        AND NOT EXISTS
+        (SELECT 1
+        FROM trbas trbas
+        WHERE d_giatrinci.koderekening = trbas.c_akun)
+union all
+SELECT DISTINCT 'AKB' AS keterangan, koderekening, '' as uraian
+        FROM d_akb
+        WHERE     tahun = #{tahun}
+        AND NOT EXISTS
+        (SELECT 1
+        FROM trbas trbas
+        WHERE d_akb.koderekening = trbas.c_akun)
+
+       
+        
+        
+        ) a) WHERE 1=1
+   <if test="ketfilter != null and ketfilter != '' "> 
+            and upper(keterangan) like '%'||upper(#{ketfilter})||'%' 
+        </if>
+        <if test="#koderekfilter != null and #koderekfilter != '' "> 
+            and upper(kodeRek) like '%'||upper(#{#koderekfilter})||'%'  
+        </if> 
+    </select>
+    
+    <select id="getBanyakListBasTrx" parameterType="java.util.Map"  resultType="java.lang.Integer">
+       select count(*) as banyak from (SELECT  
+        keterangan as keterangan,
+        koderekening as kodeRek,
+        uraian as uraian
+        FROM( 
+        SELECT   ROWNUM AS rn, a.*
+        FROM   (
+SELECT DISTINCT 'GIATRINCI' AS keterangan, koderekening, subrincian as uraian
+        FROM d_giatrinci
+        WHERE     tahun = #{tahun}
+        AND NOT EXISTS
+        (SELECT 1
+        FROM trbas trbas
+        WHERE d_giatrinci.koderekening = trbas.c_akun)
+union all
+SELECT DISTINCT 'AKB' AS keterangan, koderekening, '' as uraian
+        FROM d_akb
+        WHERE     tahun = #{tahun}
+        AND NOT EXISTS
+        (SELECT 1
+        FROM trbas trbas
+        WHERE d_akb.koderekening = trbas.c_akun)
+
+        )a)
+        where 1=1
+        <if test="ketfilter != null and ketfilter != '' "> 
+            and upper(keterangan) like '%'||upper(#{ketfilter})||'%' 
+        </if>
+        <if test="#koderekfilter != null and #koderekfilter != '' "> 
+            and upper(kodeRek) like '%'||upper(#{#koderekfilter})||'%'  
+        </if> )
+    </select>
+    
+    
+</mapper>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.ListPenggunaMapper">
+
+    <select id="getBanyakPengguna" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   count(*) as banyak
+        FROM (select idPengguna,idNrk,namaPengguna,jabatanPengguna,namaSekolahPendek
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   DISTINCT a.i_id as idPengguna, a.i_peg_nrk as idNrk, A.N_PEG as namaPengguna, A.N_PEG_JABATAN as jabatanPengguna, b.n_sekolah_pendek as namaSekolahPendek
+        from trbkuspengguna a,trsekolah b
+        where a.i_idsekolah = b.i_id
+
+        <if test="nrk != null and nrk != '' ">
+
+            and  a.i_peg_nrk   like '%'||#{nrk}||'%'
+        </if>
+
+        <if test="namapengguna != null and namapengguna != '' ">
+            and upper(a.n_peg) like '%'||upper(#{namapengguna})||'%'
+        </if>
+        <if test="idskpd != null and idskpd != '' ">
+            and a.i_idskpd = #{idskpd}
+            and a.C_PGUN_OTOR = 1
+        </if>
+
+        ) a)
+        )
+    </select>
+
+    <select id="getAllPengguna" parameterType="java.util.Map"  resultType="ebkus.model.User">
+        select idPengguna,idNrk,namaPengguna,jabatanPengguna,namaSekolahPendek,kodeOtoritas
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   DISTINCT a.i_id as idPengguna,a.c_pgun_otor as kodeOtoritas, a.i_peg_nrk as idNrk, A.N_PEG as namaPengguna, A.N_PEG_JABATAN as jabatanPengguna, b.n_sekolah_pendek as namaSekolahPendek
+        from trbkuspengguna a,trsekolah b
+        where a.i_idsekolah = b.i_id
+
+        <if test="nrk != null and nrk != '' ">
+
+            and  a.i_peg_nrk   like '%'||#{nrk}||'%'
+        </if>
+
+        <if test="namapengguna != null and namapengguna != '' ">
+            and upper(a.n_peg) like '%'||upper(#{namapengguna})||'%'
+        </if>
+
+        <if test="idskpd != null and idskpd != '' ">
+            and a.i_idskpd = #{idskpd}
+            and a.C_PGUN_OTOR = 1
+        </if>
+
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getSekolahById" parameterType="java.lang.Integer"  resultType="ebkus.model.Sekolah">
+
+        SELECT    i_id as idSekolah,I_NPSN as npsn,N_Sekolah as namaSekolah,N_Sekolah_pendek as namaSekolahPendek
+
+        FROM   (  SELECT   DISTINCT
+        trsekolah.i_id  ,
+        trsekolah.I_NPSN  ,
+        trsekolah.N_Sekolah,
+        trsekolah.N_Sekolah_pendek
+        FROM   trsekolah
+        WHERE  i_id =#{id})
+
+    </select>
+</mapper>

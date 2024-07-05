@@ -1,0 +1,235 @@
+$(document).ready(function() {
+    getTutupBuku();
+});
+
+function setCombo() {
+    var opt = '<option value="-" selected="true">-- Pilih --</option>'
+    console.log("T1 " + $("#tutup1").val());
+    if ($("#tutup1").val() != 0) {
+        opt = opt + '<option value="1">Triwulan I</option>'
+    } else if ($("#tutup2").val() != 0) {
+        opt = opt + '<option value="2">Triwulan II</option>'
+    } else if ($("#tutup3").val() != 0) {
+        opt = opt + '<option value="3">Triwulan III</option>'
+    } else if ($("#tutup4").val() != 0) {
+        opt = opt + '<option value="4">Triwulan IV</option>'
+    }
+    console.log(opt);
+    $("#triwulan").html(opt);
+    cek();
+}
+
+function cek() {
+    $("#kirim").prop('disabled', true);
+    if ($("#triwulan").val() == '-') {
+        $("#sudah").val('');
+        $("#belum").val('');
+        $("#approve").val('');
+        $("#sudin").val('');
+        $('#tabelapproval').hide();
+    } else {
+        getBanyak();
+    }
+}
+
+function prosesKirim() {
+    var varurl = getbasepath() + "/statusbop/json/prosesupdate";
+    var dataac = [];
+    var data = {tahun: $("#tahun").val(), idSekolah: $("#idSekolah").val(),
+        triwulan: $("#triwulan").val(), statusSebelum: '2', statusSesudah: '3', kodeTrx: 'JJ'}
+    dataac = data;
+    $.ajax({
+        type: "POST",
+        url: varurl,
+        contentType: "text/plain; charset=utf-8",
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'},
+        data: JSON.stringify(dataac)}).always(function() {
+        bootbox.alert("Berhasil diproses");
+        prosesHapusSisa();
+    });
+}
+
+function prosesHapusSisa() {
+    var varurl = getbasepath() + "/statusbop/json/proseshapussisa";
+    var dataac = [];
+    var data = {tahun: $("#tahun").val(), idSekolah: $("#idSekolah").val(),
+        triwulan: $("#triwulan").val(), kodeTrx: 'JJ'}
+    dataac = data;
+    $.ajax({
+        type: "POST",
+        url: varurl,
+        contentType: "text/plain; charset=utf-8",
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'},
+        data: JSON.stringify(dataac)}).always(function() {
+        cek();
+    });
+}
+function prosesCetak() {
+
+}
+
+function showGridApprove() {
+    var tahun = $('#tahun').val();
+    var idSekolah = $('#idSekolah').val();
+    var triwulan = $('#triwulan').val();
+    var urljson = getbasepath() + "/statusbop/json/listapproval";
+    myTable = $('#apptable').dataTable({
+        "bPaginate": true,
+        "sPaginationType": "bootstrap",
+        "bJQueryUI": false,
+        "bProcessing": true,
+        "bServerSide": true,
+        "bInfo": true,
+        "bScrollCollapse": true,
+        //"sScrollY": ($(window).height() * 108 / 100),
+        "bFilter": false,
+        "sAjaxSource": urljson,
+        "bDestroy": true,
+        "aaSorting": [[1, "asc"]],
+        "fnServerParams": function(aoData) {
+            aoData.push(
+                    {name: "tahun", value: tahun},
+            {name: "idSekolah", value: idSekolah},
+            {name: "triwulan", value: triwulan},
+            {name: "kodeTrx", value: 'JJ'},
+            {name: "dari", value: '2'},
+            {name: "hingga", value: '3'},
+            {name: "kodeKegiatanFilter", value: $("#kodeKegiatanFilter").val()},
+            {name: "namaKegiatanFilter", value: $("#namaKegiatanFilter").val()},
+            {name: "kodeAkunFilter", value: $("#kodeAkunFilter").val()},
+            {name: "namaAkunFilter", value: $("#namaAkunFilter").val()}
+            );
+        },
+        "fnServerData": function(sSource, aoData, fnCallback) {
+            $.ajax({
+                "dataType": 'json',
+                "type": "GET",
+                "url": sSource,
+                "data": aoData,
+                "success": fnCallback
+            });
+        },
+        "fnRowCallback": function(nRow, aData, iDisplayIndex, iDisplayIndexFull, oSettings) {
+            var numStart = this.fnPagingInfo().iStart;
+            var index = numStart + iDisplayIndexFull + 1;
+
+            $('td:eq(0)', nRow).html(index);
+            $('td:eq(8)', nRow).html(accounting.formatNumber(aData['kasKeluar'], 2, '.', ","));
+
+            return nRow;
+        },
+        "aoColumns": [
+            {"mDataProp": "noMohon", "bSortable": false, sClass: "center"},
+            {"mDataProp": "noMohon", "bSortable": true, sClass: "center"},
+            {"mDataProp": "kodeKegiatan", "bSortable": true, sClass: "center"},
+            {"mDataProp": "namaKegiatan", "bSortable": true, sClass: "left"},
+            {"mDataProp": "kodeAkun", "bSortable": true, sClass: "center"},
+            {"mDataProp": "namaAkun", "bSortable": true, sClass: "left"},
+            {"mDataProp": "kodeKomponen", "bSortable": true, sClass: "center"},
+            {"mDataProp": "namaKomponen", "bSortable": true, sClass: "left"},
+            {"mDataProp": "kasKeluar", "bSortable": true, sClass: "right"},
+        ]
+    });
+}
+
+function getTotal2() {
+    var tahun = $('#tahun').val();
+    var idSekolah = $('#idSekolah').val();
+    var triwulan = $('#triwulan').val();
+
+    $.getJSON(getbasepath() + "/statusbop/json/getTotalDari", {tahun: tahun,
+        idSekolah: idSekolah, triwulan: triwulan, kodeTrx: 'JJ', dari: '2', hingga: '3'},
+    function(result) {
+        var total = result.aData;
+        console.log("TOTAL 2 " + total);
+        $("#totkeluar2").val(accounting.formatNumber(total, 2, '.', ","));
+    });
+}
+
+function getBanyak() {
+    var tahun = $('#tahun').val();
+    var idSekolah = $('#idSekolah').val();
+    var triwulan = $('#triwulan').val();
+
+    $.getJSON(getbasepath() + "/statusbop/json/getBanyak", {tahun: tahun,
+        idSekolah: idSekolah, triwulan: triwulan, kodeTrx: 'JJ'},
+    function(result) {
+
+        var belum = result.aData[0];
+        var sudah = result.aData[1];
+        var approve = result.aData[2];
+        var sudin = result.aData[3];
+
+        $("#belum").val(belum);
+        $("#sudah").val(sudah);
+        $("#approve").val(approve);
+        $("#sudin").val(sudin);
+
+        if (approve != '0') {
+            $("#kirim").prop('disabled', false);
+        }
+
+        $('#tabelapproval').show();
+        showGridApprove();
+        getTotal2();
+    });
+}
+function getTutupBuku() {
+    var tahun = $('#tahun').val();
+    var idSekolah = $('#idSekolah').val();
+
+    $.getJSON(getbasepath() + "/statusbop/json/getTutupBuku", {tahun: tahun,
+        idSekolah: idSekolah, kodeTrx: 'JJ'},
+    function(result) {
+
+        console.log("ABCD1 " + result.aData[0]);
+        console.log("ABCD2 " + result.aData[1]);
+        console.log("ABCD3 " + result.aData[2]);
+        console.log("ABCD4 " + result.aData[3]);
+        $('#tutup1').val(result.aData[0]);
+        $('#tutup2').val(result.aData[1]);
+        $('#tutup3').val(result.aData[2]);
+        $('#tutup4').val(result.aData[3]);
+        setCombo();
+    });
+}
+function cariKodeKegiatan() {
+    $("#kodeKegiatanFilter").keyup(function() {
+        var panjang = $(this).val().length;
+        if (panjang > 2 || panjang == 0) {
+            showGrid();
+            $("#kodeKegiatanFilter").focus();
+        }
+    });
+}
+function cariNamaKegiatan() {
+    $("#namaKegiatanFilter").keyup(function() {
+        var panjang = $(this).val().length;
+        if (panjang > 2 || panjang == 0) {
+            showGrid();
+            $("#namaKegiatanFilter").focus();
+        }
+    });
+}
+function cariKodeAkun() {
+    $("#kodeAkunFilter").keyup(function() {
+        var panjang = $(this).val().length;
+        if (panjang > 2 || panjang == 0) {
+            showGrid();
+            $("#kodeAkunFilter").focus();
+        }
+    });
+}
+function cariNamaAkun() {
+    $("#namaAkunFilter").keyup(function() {
+        var panjang = $(this).val().length;
+        if (panjang > 2 || panjang == 0) {
+            showGrid();
+            $("#namaAkunFilter").focus();
+        }
+    });
+}

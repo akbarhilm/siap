@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ebkus.entity.RkasMapper">
+
+    <select id="getListRkas" parameterType="java.util.Map"  resultType="ebkus.model.Rkas">
+        SELECT rn AS no, id, c_angg_tahun AS tahun, i_npsn AS npsn, i_idsekolah AS idSekolah,
+        n_sekolah_pendek AS namaSekolah, v_angg_dpt AS vAnggDpt, v_angg_blj AS vAnggBlj,
+        c_unlock AS unlock, nrkPA, nipPA, namaPA, pangkatPA, nrkPK, nipPK,
+        namaPK, q_siswa_tw1 AS qSiswa1, q_guru_tw1 AS qGuru1,
+        q_rombel_tw1 AS qRombel1, q_siswa_tw2 AS qSiswa2, q_guru_tw2 AS qGuru2,
+        q_rombel_tw2 AS qRombel2, q_siswa_tw3 AS qSiswa3, q_guru_tw3 AS qGuru3,
+        q_rombel_tw3 AS qRombel3, q_siswa_tw4 AS qSiswa4, q_guru_tw4 AS qGuru4,
+        q_rombel_tw4 AS qRombel4, i_npwp AS noNPWP, n_npwp AS namaNPWP, n_npwp_kota AS kotaNPWP,
+        noBOP, noBOS, namaBOP, namaBOS
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        Select r.i_id AS id, c_angg_tahun, i_npsn, i_idsekolah, n_sekolah_pendek, v_angg_dpt, v_angg_blj, c_unlock,
+        r.i_nrk_pa AS nrkPA, r.i_nip_pa AS nipPA, r.n_pa AS namaPA, r.n_pangkat_pa AS pangkatPA,
+        r.i_nrk_pkblj AS nrkPK, r.i_nip_pkblj AS nipPK, r.n_pkblj AS namaPK,
+        q_siswa_tw1, q_guru_tw1, q_rombel_tw1, q_siswa_tw2, q_guru_tw2, q_rombel_tw2,
+        q_siswa_tw3, q_guru_tw3, q_rombel_tw3, q_siswa_tw4, q_guru_tw4, q_rombel_tw4,
+        s.i_npwp, s.n_npwp, s.n_npwp_kota, s.i_rek_bankbop AS noBOP, s.i_rek_bankbos AS noBOS,
+        s.n_rek_bankbop AS namaBOP, s.n_rek_bankbos AS namaBOS
+        FROM tmrkas r join trsekolah s
+        on r.i_idsekolah = s.i_id
+        WHERE c_angg_tahun = #{tahun}
+        <if test="kodeotor == 0">
+        AND s.i_idskpd =  (select i_idskpd from trbkuspengguna where i_peg_nrk = #{nrk})
+        </if>
+        <if test="npsnFilter != null and npsnFilter != '' ">
+            and upper(i_npsn) like upper('%'||#{npsnFilter}||'%')
+        </if>
+        <if test="namaSekolahFilter != null and namaSekolahFilter != '' ">
+            and upper(n_sekolah_pendek) like upper('%'||#{namaSekolahFilter}||'%')
+        </if>
+        <if test="namaPAFilter != null and namaPAFilter != '' ">
+            and upper(r.n_pa) like upper('%'||#{namaPAFilter}||'%')
+        </if>
+        ORDER BY r.i_id
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getRkas" parameterType="java.util.Map"  resultType="ebkus.model.Rkas">
+        select id, c_angg_tahun AS tahun, i_npsn AS npsn, i_idsekolah AS idSekolah,
+        n_sekolah_pendek AS namaSekolah, v_angg_dpt AS vAnggDpt, v_angg_blj AS vAnggBlj,
+        c_unlock AS unlock, nrkPA, nipPA, namaPA, pangkatPA, nrkPK, nipPK,
+        namaPK, q_siswa_tw1 AS qSiswa1, q_guru_tw1 AS qGuru1,
+        q_rombel_tw1 AS qRombel1, q_siswa_tw2 AS qSiswa2, q_guru_tw2 AS qGuru2,
+        q_rombel_tw2 AS qRombel2, q_siswa_tw3 AS qSiswa3, q_guru_tw3 AS qGuru3,
+        q_rombel_tw3 AS qRombel3, q_siswa_tw4 AS qSiswa4, q_guru_tw4 AS qGuru4,
+        q_rombel_tw4 AS qRombel4, i_npwp AS noNPWP, n_npwp AS namaNPWP, n_npwp_kota AS kotaNPWP,
+        noBOP, noBOS, namaBOP, namaBOS from (
+        Select r.i_id AS id, c_angg_tahun, i_npsn, i_idsekolah, n_sekolah_pendek, v_angg_dpt, v_angg_blj, c_unlock,
+        r.i_nrk_pa AS nrkPA, r.i_nip_pa AS nipPA, r.n_pa AS namaPA, r.n_pangkat_pa AS pangkatPA,
+        r.i_nrk_pkblj AS nrkPK, r.i_nip_pkblj AS nipPK, r.n_pkblj AS namaPK,
+        q_siswa_tw1, q_guru_tw1, q_rombel_tw1, q_siswa_tw2, q_guru_tw2, q_rombel_tw2,
+        q_siswa_tw3, q_guru_tw3, q_rombel_tw3, q_siswa_tw4, q_guru_tw4, q_rombel_tw4,
+        s.i_npwp, s.n_npwp, s.n_npwp_kota, s.i_rek_bankbop AS noBOP, s.i_rek_bankbos AS noBOS,
+        s.n_rek_bankbop AS namaBOP, s.n_rek_bankbos AS namaBOS
+        FROM tmrkas r join trsekolah s
+        on r.i_idsekolah = s.i_id
+        WHERE c_angg_tahun = #{tahun} and r.i_id = #{id})
+
+    </select>
+
+
+    <select id="getBanyakRkas" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        Select r.i_id AS id, c_angg_tahun,i_npsn, i_idsekolah, n_sekolah_pendek, v_angg_dpt, v_angg_blj, c_unlock,
+        r.i_nrk_pa AS nrkPA, r.i_nip_pa AS nipPA, r.n_pa AS namaPA, r.n_pangkat_pa AS pangkatPA,
+        r.i_nrk_pkblj AS nrkPK, r.i_nip_pkblj AS nipPK, r.n_pkblj AS namaPK,
+        q_siswa_tw1, q_guru_tw1, q_rombel_tw1, q_siswa_tw2, q_guru_tw2, q_rombel_tw2,
+        q_siswa_tw3, q_guru_tw3, q_rombel_tw3, q_siswa_tw4, q_guru_tw4, q_rombel_tw4,
+        s.i_npwp, s.n_npwp, s.n_npwp_kota, s.i_rek_bankbop AS noBOP, s.i_rek_bankbos AS noBOS,
+        s.n_rek_bankbop AS namaBOP, s.n_rek_bankbos AS namaBOS
+        FROM tmrkas r join trsekolah s
+        on r.i_idsekolah = s.i_id
+        WHERE c_angg_tahun = #{tahun}
+        <if test="kodeotor == 0">
+        AND s.i_idskpd =  (select i_idskpd from trbkuspengguna where i_peg_nrk = #{nrk})
+        </if>
+
+        <if test="npsnFilter != null and npsnFilter != '' ">
+            and upper(i_npsn) like upper(#{npsnFilter})||'%'
+        </if>
+        <if test="namaSekolahFilter != null and namaSekolahFilter != '' ">
+            and upper(n_sekolah_pendek) like upper(#{namaSekolahFilter})||'%'
+        </if>
+        <if test="namaPAFilter != null and namaPAFilter != '' ">
+            and upper(r.n_pa) like upper(#{namaPAFilter})||'%'
+        </if>
+        ORDER BY r.i_id
+        )
+    </select>
+
+    <update id="updateRkas" parameterType="ebkus.model.Rkas"   >
+        UPDATE TMRKAS
+        SET
+        i_nrk_pa = #{nrkPA},
+        i_nip_pa = #{nipPA},
+        n_pa = #{namaPA},
+        n_pangkat_pa = #{pangkatPA},
+        i_nrk_pkblj = #{nrkPK},
+        i_nip_pkblj = #{nipPK},
+        n_pkblj = #{namaPK},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit}
+        WHERE  I_ID  = #{id}
+    </update>
+</mapper>
